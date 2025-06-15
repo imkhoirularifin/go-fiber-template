@@ -16,7 +16,8 @@ import (
 func Run() {
 	app := fiber.New(
 		fiber.Config{
-			ErrorHandler: common.ErrorHandler,
+			ErrorHandler:          common.ErrorHandler,
+			DisableStartupMessage: true,
 		},
 	)
 
@@ -26,6 +27,7 @@ func Run() {
 	registerRoutes(api)
 
 	go func() {
+		log.Info().Msgf("Server is running on port %s", cfg.Port)
 		if err := app.Listen(fmt.Sprintf(":%s", cfg.Port)); err != nil {
 			log.Error().Err(err).Msg("Failed to start server")
 		}
