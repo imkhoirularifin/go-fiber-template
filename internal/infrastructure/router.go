@@ -1,7 +1,7 @@
 package infrastructure
 
 import (
-	x_app "nothing-go/internal/app"
+	x_app "go-fiber-template/internal/app"
 
 	"github.com/gofiber/fiber/v2"
 )

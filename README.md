@@ -1,3 +1,3 @@
-# Nothing Go
+# Go Fiber Template
 
-A simple Go program that does noting, just a skeleton for go project.
+A simple Go program that does nothing, just a skeleton for go project.

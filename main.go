@@ -1,6 +1,6 @@
 package main
 
-import "nothing-go/internal/infrastructure"
+import "go-fiber-template/internal/infrastructure"
 
 func main() {
 	infrastructure.Run()

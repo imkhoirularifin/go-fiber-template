@@ -2,7 +2,7 @@ package infrastructure
 
 import (
 	"fmt"
-	"nothing-go/lib/common"
+	"go-fiber-template/lib/common"
 	"os"
 	"os/signal"
 	"syscall"

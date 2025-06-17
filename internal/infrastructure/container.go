@@ -1,8 +1,8 @@
 package infrastructure
 
 import (
-	"nothing-go/lib/config"
-	"nothing-go/lib/xlogger"
+	"go-fiber-template/lib/config"
+	"go-fiber-template/lib/xlogger"
 
 	"github.com/rs/zerolog/log"
 )

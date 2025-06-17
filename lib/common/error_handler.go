@@ -2,7 +2,7 @@ package common
 
 import (
 	"errors"
-	"nothing-go/internal/domain/dto"
+	"go-fiber-template/internal/domain/dto"
 
 	"github.com/gofiber/fiber/v2"
 )

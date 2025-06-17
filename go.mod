@@ -1,4 +1,4 @@
-module nothing-go
+module go-fiber-template
 
 go 1.24.2
 
