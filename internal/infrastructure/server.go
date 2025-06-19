@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"go-fiber-template/lib/common"
 	"go-fiber-template/lib/config"
-	"go-fiber-template/lib/middleware"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/gofiber/contrib/fiberzerolog"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/recover"
@@ -24,8 +24,13 @@ func Run() {
 		},
 	)
 
+	app.Use(fiberzerolog.New(fiberzerolog.Config{
+		Logger:          &log.Logger,
+		Fields:          cfg.LogFields,
+		WrapHeaders:     true,
+		FieldsSnakeCase: true,
+	}))
 	app.Use(recover.New())
-	app.Use(middleware.Logger(cfg))
 	app.Use(cors.New(config.CorsConfig))
 
 	api := app.Group("/api/v1")
@@ -44,7 +49,7 @@ func Run() {
 
 	<-c
 	log.Info().Msg("Shutting down server")
-	err := app.ShutdownWithTimeout(2 * time.Second)
+	err := app.ShutdownWithTimeout(3 * time.Second)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to gracefully shutdown server")
 	}

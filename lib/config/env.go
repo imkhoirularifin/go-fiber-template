@@ -9,6 +9,8 @@ import (
 type AppConfig struct {
 	Port  string `env:"PORT" envDefault:"3000"`
 	GoEnv string `env:"GO_ENV" envDefault:"development" validate:"oneof=development production"`
+	// Log field docs: https://github.com/gofiber/contrib/blob/main/fiberzerolog/config.go
+	LogFields []string `env:"LOG_FIELDS" envSeparator:","`
 }
 
 func Setup() AppConfig {
