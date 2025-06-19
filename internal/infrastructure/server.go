@@ -56,6 +56,10 @@ func Run() {
 	log.Info().Msg("Running cleanup tasks")
 
 	// Your cleanup tasks here
+	err = dbInstance.Close()
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to close database connection")
+	}
 
 	log.Info().Msg("Server shutdown complete")
 }
