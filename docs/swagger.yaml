@@ -1,0 +1,35 @@
+basePath: /api/v1
+consumes:
+- application/json
+info:
+  contact: {}
+  description: Go Fiber Template API Documentation
+  title: Go Fiber Template API Documentation
+  version: "1.0"
+paths:
+  /ping:
+    get:
+      consumes:
+      - application/json
+      description: Ping the server
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: pong
+          schema:
+            type: string
+      summary: Ping
+      tags:
+      - Health Check
+produces:
+- application/json
+schemes:
+- http
+- https
+securityDefinitions:
+  Bearer:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
