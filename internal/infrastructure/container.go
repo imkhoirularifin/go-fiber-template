@@ -3,8 +3,7 @@ package infrastructure
 import (
 	"go-fiber-template/lib/config"
 	"go-fiber-template/lib/xlogger"
-
-	"github.com/rs/zerolog/log"
+	"go-fiber-template/lib/xvalidator"
 )
 
 var (
@@ -12,12 +11,7 @@ var (
 )
 
 func init() {
-	var err error
-
-	cfg, err = config.Setup()
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to load configuration")
-	}
-
-	xlogger.Setup()
+	cfg = config.Setup()
+	xlogger.Setup(cfg)
+	xvalidator.Setup()
 }

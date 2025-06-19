@@ -3,12 +3,15 @@ package infrastructure
 import (
 	"fmt"
 	"go-fiber-template/lib/common"
+	"go-fiber-template/lib/config"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
+	"github.com/gofiber/contrib/fiberzerolog"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/rs/zerolog/log"
 )
@@ -21,10 +24,18 @@ func Run() {
 		},
 	)
 
-	app.Use(logger.New())
+	app.Use(fiberzerolog.New(fiberzerolog.Config{
+		Logger:          &log.Logger,
+		Fields:          cfg.LogFields,
+		WrapHeaders:     true,
+		FieldsSnakeCase: true,
+	}))
 	app.Use(recover.New())
+	app.Use(cors.New(config.CorsConfig))
+
 	api := app.Group("/api/v1")
 	registerRoutes(api)
+	app.Use(common.NotFoundHandler)
 
 	go func() {
 		log.Info().Msgf("Server is running on port %s", cfg.Port)
@@ -38,12 +49,13 @@ func Run() {
 
 	<-c
 	log.Info().Msg("Shutting down server")
-	app.Shutdown()
+	err := app.ShutdownWithTimeout(3 * time.Second)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to gracefully shutdown server")
+	}
 	log.Info().Msg("Running cleanup tasks")
 
 	// Your cleanup tasks here
-	// db.Close()
-	// redisConn.Close()
 
 	log.Info().Msg("Server shutdown complete")
 }
