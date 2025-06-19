@@ -1,12 +1,160 @@
 basePath: /api/v1
 consumes:
 - application/json
+definitions:
+  dto.ErrorValidationDto:
+    properties:
+      field:
+        type: string
+      message:
+        type: string
+    type: object
+  dto.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 8
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  dto.LoginResponse:
+    properties:
+      access_token:
+        type: string
+    type: object
+  dto.RegisterRequest:
+    properties:
+      email:
+        type: string
+      name:
+        maxLength: 100
+        minLength: 3
+        type: string
+      password:
+        minLength: 8
+        type: string
+    required:
+    - email
+    - name
+    - password
+    type: object
+  dto.RegisterResponse:
+    properties:
+      access_token:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  dto.ResponseDto:
+    properties:
+      data: {}
+      errors:
+        items:
+          $ref: '#/definitions/dto.ErrorValidationDto'
+        type: array
+      message:
+        type: string
+    type: object
+  dto.UserDto:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
 info:
   contact: {}
   description: Go Fiber Template API Documentation
   title: Go Fiber Template API Documentation
   version: "1.0"
 paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: User login with email and password
+      parameters:
+      - description: User login request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.ResponseDto'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.LoginResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ResponseDto'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ResponseDto'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ResponseDto'
+      summary: User login
+      tags:
+      - Auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user with email and password
+      parameters:
+      - description: User registration request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.ResponseDto'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.RegisterResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ResponseDto'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/dto.ResponseDto'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ResponseDto'
+      summary: Register a new user
+      tags:
+      - Auth
   /ping:
     get:
       consumes:
@@ -22,6 +170,46 @@ paths:
       summary: Ping
       tags:
       - Health Check
+  /users/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Find user by ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.ResponseDto'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.UserDto'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ResponseDto'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ResponseDto'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ResponseDto'
+      security:
+      - Bearer: []
+      summary: Find user by ID
+      tags:
+      - User
 produces:
 - application/json
 schemes:
