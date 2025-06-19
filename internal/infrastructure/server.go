@@ -30,6 +30,7 @@ func Run() {
 
 	api := app.Group("/api/v1")
 	registerRoutes(api)
+	app.Use(common.NotFoundHandler)
 
 	go func() {
 		log.Info().Msgf("Server is running on port %s", cfg.Port)

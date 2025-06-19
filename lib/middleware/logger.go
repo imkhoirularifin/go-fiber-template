@@ -33,12 +33,12 @@ func Logger(cfg config.AppConfig) fiber.Handler {
 			if errors.As(err, &e) {
 				status = e.Code
 			}
+		}
 
-			if status >= 500 {
-				level = zerolog.ErrorLevel
-			} else if status >= 400 {
-				level = zerolog.WarnLevel
-			}
+		if status >= 500 {
+			level = zerolog.ErrorLevel
+		} else if status >= 400 {
+			level = zerolog.WarnLevel
 		}
 
 		log.WithLevel(level).Int("status", status).Str("latency", latency.String()).Str("ip", ip).Str("method", method).Str("path", path).Str("error", errMsg).Send()
