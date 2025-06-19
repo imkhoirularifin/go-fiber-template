@@ -8,11 +8,10 @@ import (
 
 var (
 	cfg config.AppConfig
-	val *xvalidator.Validator
 )
 
 func init() {
 	cfg = config.Setup()
 	xlogger.Setup(cfg)
-	setupValidator()
+	xvalidator.Setup()
 }
