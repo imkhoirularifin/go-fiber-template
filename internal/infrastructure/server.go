@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	apitally "github.com/apitally/apitally-go/fiber"
 	"github.com/gofiber/contrib/fiberzerolog"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -17,20 +18,9 @@ import (
 )
 
 func Run() {
-	app := fiber.New(
-		fiber.Config{
-			AppName:               cfg.AppName,
-			ErrorHandler:          common.ErrorHandler,
-			DisableStartupMessage: true,
-		},
-	)
-
-	app.Use(fiberzerolog.New(fiberzerolog.Config{
-		Logger:          &log.Logger,
-		Fields:          cfg.LogFields,
-		WrapHeaders:     true,
-		FieldsSnakeCase: true,
-	}))
+	app := fiber.New(config.FiberCfg(cfg))
+	app.Use(apitally.Middleware(app, config.ApitallyCfg(cfg)))
+	app.Use(fiberzerolog.New(config.FiberZerologCfg(cfg)))
 	app.Use(recover.New())
 	app.Use(cors.New(config.CorsConfig))
 
