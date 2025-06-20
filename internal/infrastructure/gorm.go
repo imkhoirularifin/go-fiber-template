@@ -3,7 +3,6 @@ package infrastructure
 import "go-fiber-template/lib/database"
 
 func setupDB() {
-	var err error
 	dbInstance = database.New(
 		database.Config{
 			Driver: cfg.Database.Driver,
@@ -11,8 +10,5 @@ func setupDB() {
 		},
 	)
 
-	db, err = dbInstance.Setup()
-	if err != nil {
-		panic(err)
-	}
+	db = dbInstance.GetDB()
 }
