@@ -19,6 +19,7 @@ import (
 func Run() {
 	app := fiber.New(
 		fiber.Config{
+			AppName:               cfg.AppName,
 			ErrorHandler:          common.ErrorHandler,
 			DisableStartupMessage: true,
 		},
