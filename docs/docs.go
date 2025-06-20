@@ -159,7 +159,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Health Check"
+                    "App"
                 ],
                 "summary": "Ping",
                 "responses": {
@@ -232,6 +232,38 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ResponseDto"
+                        }
+                    }
+                }
+            }
+        },
+        "/welcome": {
+            "get": {
+                "description": "Get welcome message",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "App"
+                ],
+                "summary": "Welcome",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Language code for localization",
+                        "name": "Accept-Language",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/dto.ResponseDto"
                         }

@@ -4,10 +4,12 @@ import (
 	"go-fiber-template/lib/common"
 
 	apitally "github.com/apitally/apitally-go/fiber"
+	"github.com/gofiber/contrib/fiberi18n/v2"
 	"github.com/gofiber/contrib/fiberzerolog"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/text/language"
 )
 
 func FiberCfg(cfg AppConfig) fiber.Config {
@@ -54,4 +56,10 @@ func FiberZerologCfg(cfg AppConfig) fiberzerolog.Config {
 		WrapHeaders:     true,
 		FieldsSnakeCase: true,
 	}
+}
+
+var I18nConfig = &fiberi18n.Config{
+	RootPath:        "./localize",
+	AcceptLanguages: []language.Tag{language.Indonesian, language.English},
+	DefaultLanguage: language.English,
 }
