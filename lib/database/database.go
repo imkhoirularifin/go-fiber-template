@@ -54,26 +54,37 @@ func (d *Database) setConfig(config Config) {
 }
 
 // New creates a new database struct with the given configuration.
-func New(config Config) *Database {
+func New(config ...Config) *Database {
 	database := &Database{
 		config: Config{},
 		db:     nil,
 	}
-	database.setConfig(config)
+	if len(config) > 0 {
+		database.setConfig(config[0])
+	} else {
+		// Set default configuration if none is provided
+		database.setConfig(Config{})
+	}
+
+	// Initialize the database connection
+	err := database.setup()
+	if err != nil {
+		panic(err)
+	}
 
 	return database
 }
 
-// Setup initializes the database connection and returns a gorm.DB instance.
-func (d *Database) Setup() (*gorm.DB, error) {
+// setup initializes the database connection.
+func (d *Database) setup() error {
 	logger, err := getLogger(d.config.LogLevel)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	dialector, err := getDialector(d.config.Driver, d.config.Dsn)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	db, err := gorm.Open(dialector, &gorm.Config{
@@ -81,16 +92,24 @@ func (d *Database) Setup() (*gorm.DB, error) {
 		NowFunc: nowFunc,
 	})
 	if err != nil {
-		return nil, err
+		return err
 	}
 	d.db = db
 
 	err = d.Ping()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return db, nil
+	return nil
+}
+
+// GetDB returns the gorm.DB instance if it is initialized, otherwise returns nil.
+func (d *Database) GetDB() *gorm.DB {
+	if d.db == nil {
+		return nil
+	}
+	return d.db
 }
 
 // Ping checks if the database connection is alive.

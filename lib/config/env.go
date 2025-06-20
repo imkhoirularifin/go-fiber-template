@@ -17,6 +17,7 @@ type AppConfig struct {
 	LogFields []string       `env:"LOG_FIELDS" envSeparator:"," envDefault:"latency,status,method,url,error"`
 	Jwt       JwtConfig      `envPrefix:"JWT_"`
 	Database  DatabaseConfig `envPrefix:"DB_"`
+	Apitally  ApitallyConfig `envPrefix:"APITALLY_"`
 }
 
 type JwtConfig struct {
@@ -27,6 +28,10 @@ type JwtConfig struct {
 type DatabaseConfig struct {
 	Driver string `env:"DRIVER" envDefault:"postgres"`
 	Dsn    string `env:"DSN" envDefault:"host=localhost user=postgres password=secret dbname=mydb port=5432 sslmode=disable"`
+}
+
+type ApitallyConfig struct {
+	ClientId string `env:"CLIENT_ID,notEmpty"`
 }
 
 func Setup() AppConfig {

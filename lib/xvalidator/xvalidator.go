@@ -88,7 +88,8 @@ func (v *Validator) ValidateStruct(s interface{}) []dto.ErrorValidationDto {
 	if err := v.validate.Struct(s); err != nil {
 		if ve, ok := err.(validator.ValidationErrors); ok {
 			for _, fe := range ve {
-				field := fe.StructNamespace()
+				namespace := fe.Namespace()
+				field := trimStructName(namespace)
 				msg := fe.Translate(v.translator)
 
 				errValidations = append(errValidations, dto.ErrorValidationDto{
@@ -109,4 +110,12 @@ func (v *Validator) ValidateStruct(s interface{}) []dto.ErrorValidationDto {
 	}
 
 	return nil
+}
+
+func trimStructName(field string) string {
+	// Remove the struct name prefix if it exists
+	if idx := strings.Index(field, "."); idx != -1 {
+		return field[idx+1:]
+	}
+	return field
 }

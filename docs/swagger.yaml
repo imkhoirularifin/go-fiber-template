@@ -169,7 +169,7 @@ paths:
             type: string
       summary: Ping
       tags:
-      - Health Check
+      - App
   /users/{id}:
     get:
       consumes:
@@ -210,6 +210,27 @@ paths:
       summary: Find user by ID
       tags:
       - User
+  /welcome:
+    get:
+      consumes:
+      - application/json
+      description: Get welcome message
+      parameters:
+      - description: Language code for localization
+        in: header
+        name: Accept-Language
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ResponseDto'
+      summary: Welcome
+      tags:
+      - App
 produces:
 - application/json
 schemes:
