@@ -3,9 +3,11 @@ package infrastructure
 import (
 	"go-fiber-template/internal/auth"
 	"go-fiber-template/internal/domain/interfaces"
+	"go-fiber-template/internal/email"
 	"go-fiber-template/internal/user"
 	"go-fiber-template/lib/config"
 	"go-fiber-template/lib/database"
+	"go-fiber-template/lib/xkafka"
 	"go-fiber-template/lib/xlogger"
 	"go-fiber-template/lib/xvalidator"
 
@@ -13,14 +15,16 @@ import (
 )
 
 var (
-	cfg        config.AppConfig
-	dbInstance *database.Database
-	db         *gorm.DB
+	cfg         config.AppConfig
+	dbInstance  *database.Database
+	db          *gorm.DB
+	kafkaClient *xkafka.Client
 
 	userRepository interfaces.UserRepository
 
-	authService interfaces.AuthService
-	userService interfaces.UserService
+	authService  interfaces.AuthService
+	userService  interfaces.UserService
+	emailService interfaces.EmailService
 )
 
 func init() {
@@ -28,9 +32,11 @@ func init() {
 	xlogger.Setup(cfg)
 	xvalidator.Setup()
 	setupDB()
+	kafkaClient = xkafka.Setup()
 
 	userRepository = user.NewRepository(db)
 
-	authService = auth.NewService(userRepository)
+	authService = auth.NewService(userRepository, kafkaClient)
 	userService = user.NewService(userRepository)
+	emailService = email.NewService(kafkaClient)
 }

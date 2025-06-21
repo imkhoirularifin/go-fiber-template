@@ -1,0 +1,26 @@
+package email
+
+import (
+	"fmt"
+	"go-fiber-template/internal/domain/interfaces"
+	"go-fiber-template/lib/xkafka"
+)
+
+type service struct {
+	kafkaClient *xkafka.Client
+}
+
+func (s *service) Send(config *interfaces.EmailConfig) error {
+	// For now just print in the console
+	fmt.Printf("Sending email to: %s\n", config.To)
+	fmt.Printf("Subject: %s\n", config.Subject)
+	fmt.Printf("Body: %s\n", config.Body)
+
+	return nil
+}
+
+func NewService(kafkaClient *xkafka.Client) interfaces.EmailService {
+	return &service{
+		kafkaClient: kafkaClient,
+	}
+}
