@@ -38,7 +38,7 @@ func DefaultConfig() *Config {
 // Client wraps Kafka producer and consumer group functionality.
 type Client struct {
 	config        *Config
-	producer      sarama.AsyncProducer
+	producer      sarama.SyncProducer // Use SyncProducer
 	consumerGroup sarama.ConsumerGroup
 	closed        chan struct{}
 	wg            sync.WaitGroup
@@ -54,9 +54,9 @@ func NewClient(cfg *Config) (*Client, error) {
 		return nil, fmt.Errorf("no brokers specified")
 	}
 
-	producer, err := sarama.NewAsyncProducer(cfg.Brokers, cfg.SaramaConfig)
+	producer, err := sarama.NewSyncProducer(cfg.Brokers, cfg.SaramaConfig)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create producer: %w", err)
+		return nil, fmt.Errorf("failed to create sync producer: %w", err)
 	}
 
 	client := &Client{
@@ -65,45 +65,23 @@ func NewClient(cfg *Config) (*Client, error) {
 		closed:   make(chan struct{}),
 	}
 
-	// Start handling producer errors and successes
-	client.wg.Add(1)
-	go client.handleProducer()
-
 	return client, nil
-}
-
-// handleProducer processes producer errors and successes.
-func (c *Client) handleProducer() {
-	defer c.wg.Done()
-
-	for {
-		select {
-		case err := <-c.producer.Errors():
-			if err != nil {
-				log.Error().Err(err).Msg("Producer error")
-			}
-		case <-c.producer.Successes():
-			// Log or handle successes if needed
-		case <-c.closed:
-			return
-		}
-	}
 }
 
 // Produce sends a message to the specified topic.
 func (c *Client) Produce(ctx context.Context, topic string, key, value []byte) error {
-	select {
-	case c.producer.Input() <- &sarama.ProducerMessage{
+	msg := &sarama.ProducerMessage{
 		Topic: topic,
 		Key:   sarama.ByteEncoder(key),
 		Value: sarama.ByteEncoder(value),
-	}:
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
+	}
+	select {
 	case <-c.closed:
 		return fmt.Errorf("client closed")
+	default:
 	}
+	_, _, err := c.producer.SendMessage(msg)
+	return err
 }
 
 // ConsumerHandler defines the interface for handling consumed messages.
