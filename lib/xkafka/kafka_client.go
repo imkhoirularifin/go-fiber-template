@@ -3,11 +3,11 @@ package xkafka
 import (
 	"context"
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
 	"github.com/IBM/sarama"
+	"github.com/rs/zerolog/log"
 )
 
 // Config holds Kafka client configuration.
@@ -80,7 +80,7 @@ func (c *Client) handleProducer() {
 		select {
 		case err := <-c.producer.Errors():
 			if err != nil {
-				log.Printf("Producer error: %v", err)
+				log.Error().Err(err).Msg("Producer error")
 			}
 		case <-c.producer.Successes():
 			// Log or handle successes if needed
@@ -134,13 +134,13 @@ func (c *Client) Consume(ctx context.Context, topics []string, handler ConsumerH
 		for {
 			select {
 			case <-ctx.Done():
-				log.Printf("Consumer context cancelled, stopping consumption")
+				log.Info().Msg("Consumer context cancelled, stopping consumption")
 				return
 			default:
 				if err := c.consumerGroup.Consume(ctx, topics, consumer); err != nil {
 					// Don't log errors when context is cancelled (normal shutdown)
 					if ctx.Err() == nil {
-						log.Printf("Consumer error: %v", err)
+						log.Error().Err(err).Msg("Consumer error")
 					}
 				}
 				if ctx.Err() != nil {
@@ -161,7 +161,7 @@ func (c *Client) Close() error {
 
 	if c.producer != nil {
 		if err := c.producer.Close(); err != nil {
-			log.Printf("Failed to close producer: %v", err)
+			log.Error().Err(err).Msg("Failed to close producer")
 		}
 	}
 
@@ -169,12 +169,13 @@ func (c *Client) Close() error {
 		if err := c.consumerGroup.Close(); err != nil {
 			// Don't log errors when consumer group is already closed (normal during shutdown)
 			if err.Error() != "kafka: tried to use consumer group that was closed" {
-				log.Printf("Failed to close consumer group: %v", err)
+				log.Error().Err(err).Msg("Failed to close consumer group")
 			}
 		}
 	}
 
 	c.wg.Wait()
+	log.Info().Msg("Kafka client closed")
 	return nil
 }
 
@@ -199,7 +200,7 @@ func (c *consumer) Cleanup(sarama.ConsumerGroupSession) error {
 func (c *consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for message := range claim.Messages() {
 		if err := c.handler.HandleMessage(message); err != nil {
-			log.Printf("Handler error: %v", err)
+			log.Error().Err(err).Msg("Handler error")
 		}
 		session.MarkMessage(message, "")
 	}
