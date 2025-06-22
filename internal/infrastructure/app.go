@@ -8,6 +8,7 @@ import (
 	"github.com/gofiber/contrib/fiberi18n/v2"
 	"github.com/gofiber/contrib/fiberzerolog"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cache"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 )
@@ -31,7 +32,8 @@ func setupMiddleware(app *fiber.App) {
 	app.Use(apitally.Middleware(app, config.ApitallyCfg(cfg)))
 	app.Use(fiberzerolog.New(config.FiberZerologCfg(cfg)))
 	app.Use(recover.New())
-	app.Use(cors.New(config.CorsConfig))
+	app.Use(cors.New(config.CorsCfg))
+	app.Use(cache.New(config.CacheCfg))
 }
 
 // setupRoutes configures all routes for the application

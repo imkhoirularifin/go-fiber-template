@@ -1,7 +1,6 @@
 package email
 
 import (
-	"context"
 	"encoding/json"
 	"go-fiber-template/internal/domain/interfaces"
 
@@ -19,6 +18,7 @@ func NewEmailConsumerHandler(emailService interfaces.EmailService) *emailConsume
 	}
 }
 
+// HandleMessage processes the email message from Kafka
 func (h *emailConsumerHandler) HandleMessage(msg *sarama.ConsumerMessage) error {
 	var emailConfig interfaces.EmailConfig
 	if err := json.Unmarshal(msg.Value, &emailConfig); err != nil {
@@ -30,10 +30,4 @@ func (h *emailConsumerHandler) HandleMessage(msg *sarama.ConsumerMessage) error 
 	}
 
 	return nil
-}
-
-// StartEmailConsumer starts consuming email messages from Kafka topics
-func (s *service) StartEmailConsumer(ctx context.Context, topics []string) error {
-	handler := NewEmailConsumerHandler(s)
-	return s.kafkaClient.Consume(ctx, topics, handler)
 }
