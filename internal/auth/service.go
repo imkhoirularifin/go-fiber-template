@@ -1,17 +1,21 @@
 package auth
 
 import (
+	"encoding/json"
+	"fmt"
 	"go-fiber-template/internal/domain/dto"
 	"go-fiber-template/internal/domain/entity"
 	"go-fiber-template/internal/domain/interfaces"
 	"go-fiber-template/lib/utils"
 	"go-fiber-template/lib/xjwt"
+	"go-fiber-template/lib/xkafka"
 
 	"github.com/gofiber/fiber/v2"
 )
 
 type service struct {
-	userRepo interfaces.UserRepository
+	userRepo    interfaces.UserRepository
+	kafkaClient *xkafka.Client
 }
 
 func (s *service) Login(c *fiber.Ctx, req *dto.LoginRequest) (*dto.LoginResponse, error) {
@@ -26,6 +30,10 @@ func (s *service) Login(c *fiber.Ctx, req *dto.LoginRequest) (*dto.LoginResponse
 
 	accessToken, err := xjwt.GenerateToken(byEmail, xjwt.TokenTypeAccess)
 	if err != nil {
+		return nil, err
+	}
+
+	if err := s.sendLoginNotification(c, byEmail); err != nil {
 		return nil, err
 	}
 
@@ -76,8 +84,32 @@ func (s *service) validateUnique(user *entity.User) error {
 	return nil
 }
 
-func NewService(userRepo interfaces.UserRepository) interfaces.AuthService {
+func (s *service) sendLoginNotification(c *fiber.Ctx, user *entity.User) error {
+	// Create email configuration for login notification
+	emailConfig := &interfaces.EmailConfig{
+		To:      user.Email,
+		Subject: "Login Notification",
+		Body:    fmt.Sprintf("Hello %s, you have successfully logged in to your account.", user.Name),
+	}
+
+	emailConfigByte, err := json.Marshal(emailConfig)
+	if err != nil {
+		return err
+	}
+
+	if err := s.kafkaClient.Produce(c.Context(), "auth.login", []byte("login-notification"), emailConfigByte); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to send login notification")
+	}
+
+	return nil
+}
+
+func NewService(
+	userRepo interfaces.UserRepository,
+	kafkaClient *xkafka.Client,
+) interfaces.AuthService {
 	return &service{
-		userRepo: userRepo,
+		userRepo:    userRepo,
+		kafkaClient: kafkaClient,
 	}
 }
