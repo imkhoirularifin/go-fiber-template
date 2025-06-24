@@ -18,6 +18,7 @@ type AppConfig struct {
 	Jwt       JwtConfig      `envPrefix:"JWT_"`
 	Database  DatabaseConfig `envPrefix:"DB_"`
 	Apitally  ApitallyConfig `envPrefix:"APITALLY_"`
+	Kafka     KafkaConfig    `envPrefix:"KAFKA_"`
 }
 
 type JwtConfig struct {
@@ -32,6 +33,11 @@ type DatabaseConfig struct {
 
 type ApitallyConfig struct {
 	ClientId string `env:"CLIENT_ID,notEmpty"`
+}
+
+type KafkaConfig struct {
+	Brokers []string `env:"BROKERS" envSeparator:"," envDefault:"localhost:9092"`
+	GroupId string   `env:"GROUP_ID" envDefault:"go-fiber-template"`
 }
 
 func Setup() AppConfig {

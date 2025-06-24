@@ -1,11 +1,15 @@
 package xkafka
 
-import "github.com/rs/zerolog/log"
+import (
+	"go-fiber-template/lib/config"
 
-func Setup() *Client {
+	"github.com/rs/zerolog/log"
+)
+
+func Setup(kafkaCfg config.KafkaConfig) *Client {
 	cfg := DefaultConfig()
-	cfg.Brokers = []string{"localhost:9092"}
-	cfg.ConsumerGroup = "go-fiber-template"
+	cfg.Brokers = kafkaCfg.Brokers
+	cfg.ConsumerGroup = kafkaCfg.GroupId
 
 	client, err := NewClient(cfg)
 	if err != nil {
