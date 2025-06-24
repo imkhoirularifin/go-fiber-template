@@ -7,11 +7,10 @@ import (
 )
 
 func Setup(kafkaCfg config.KafkaConfig) *Client {
-	cfg := DefaultConfig()
-	cfg.Brokers = kafkaCfg.Brokers
-	cfg.ConsumerGroup = kafkaCfg.GroupId
-
-	client, err := NewClient(cfg)
+	client, err := NewClient(Config{
+		Brokers:       kafkaCfg.Brokers,
+		ConsumerGroup: kafkaCfg.GroupId,
+	})
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create Kafka client")
 	}

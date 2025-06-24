@@ -97,7 +97,7 @@ func (s *service) sendLoginNotification(c *fiber.Ctx, user *entity.User) error {
 		return err
 	}
 
-	if err := s.kafkaClient.Produce(c.Context(), "auth.login", []byte("login-notification"), emailConfigByte); err != nil {
+	if err := s.kafkaClient.Produce(c.Context(), "auth.login", emailConfigByte); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Failed to send login notification")
 	}
 
