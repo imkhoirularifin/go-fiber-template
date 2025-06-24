@@ -216,7 +216,7 @@ func (c *consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 		if err := c.handler.HandleMessage(message); err != nil {
 			log.Error().Err(err).Msg("Handler error")
 		}
-		session.MarkMessage(message, "testing-metadata")
+		session.MarkMessage(message, "")
 	}
 	return nil
 }
