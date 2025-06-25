@@ -25,12 +25,12 @@ type Config struct {
 	LogLevel string
 }
 
-// Default config values
-const (
-	DefaultDriver   = "sqlite3"
-	DefaultDsn      = "file::memory:?cache=shared"
-	DefaultLogLevel = "silent"
-)
+// DefaultConfig provides default values for the database configuration.
+var DefaultConfig = Config{
+	Driver:   "sqlite3",
+	Dsn:      "file::memory:?cache=shared",
+	LogLevel: "silent",
+}
 
 // Database holds the database connection and configuration.
 type Database struct {
@@ -39,31 +39,33 @@ type Database struct {
 }
 
 // setConfig sets the configuration for the database connection.
-func (d *Database) setConfig(config Config) {
-	d.config = config
+func setConfig(config ...Config) Config {
+	if len(config) == 0 {
+		return DefaultConfig
+	}
 
-	if d.config.Driver == "" {
-		d.config.Driver = DefaultDriver
+	// Override default config with provided configs
+	cfg := config[0]
+
+	// Set default values if not provided
+	if cfg.Driver == "" {
+		cfg.Driver = DefaultConfig.Driver
 	}
-	if d.config.Dsn == "" {
-		d.config.Dsn = DefaultDsn
+	if cfg.Dsn == "" {
+		cfg.Dsn = DefaultConfig.Dsn
 	}
-	if d.config.LogLevel == "" {
-		d.config.LogLevel = DefaultLogLevel
+	if cfg.LogLevel == "" {
+		cfg.LogLevel = DefaultConfig.LogLevel
 	}
+	return cfg
 }
 
 // New creates a new database struct with the given configuration.
 func New(config ...Config) *Database {
+	cfg := setConfig(config...)
 	database := &Database{
-		config: Config{},
+		config: cfg,
 		db:     nil,
-	}
-	if len(config) > 0 {
-		database.setConfig(config[0])
-	} else {
-		// Set default configuration if none is provided
-		database.setConfig(Config{})
 	}
 
 	// Initialize the database connection

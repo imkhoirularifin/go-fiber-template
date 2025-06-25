@@ -1,251 +1,275 @@
-# Infrastructure Architecture
+# Three-File Infrastructure Architecture
 
-This document explains the modular infrastructure architecture of the Go Fiber Template application.
+This document explains the clean, three-file infrastructure architecture of the Go Fiber Template application.
 
 ## Overview
 
-The infrastructure package has been refactored into smaller, focused modules to improve maintainability and separation of concerns.
+The infrastructure package has been organized into three focused files that provide clear separation of concerns while maintaining simplicity.
 
 ## File Structure
 
 ```
 internal/infrastructure/
-├── server.go      # Main application entry point
-├── app.go         # Fiber app setup and configuration
-├── consumer.go    # Email consumer management
-├── cleanup.go     # Resource cleanup and shutdown
-├── signal.go      # Signal handling and graceful shutdown
-├── container.go   # Dependency injection container
-└── router.go      # Route registration
+├── container.go   # Dependency injection and service setup
+├── app.go         # Fiber app configuration and middleware
+├── server.go      # Server lifecycle and signal handling
+└── README.md      # This documentation
 ```
 
-## Module Responsibilities
+## Architecture
 
-### 1. `server.go` - Main Entry Point
+### 1. `container.go` - Dependency Management
 
-- **Purpose**: Orchestrates the application startup and shutdown
-- **Responsibilities**:
-  - Creates the main application context
-  - Coordinates startup sequence
-  - Handles graceful shutdown coordination
+**Purpose**: Manages all application dependencies and service initialization
+
+**Responsibilities**:
+
+- Loads configuration
+- Sets up logging and validation
+- Initializes database connection
+- Sets up Kafka client
+- Creates repositories and services
+- Provides dependency container
 
 ```go
-func Run() {
-    app := setupApp()
-    ctx, cancel := context.WithCancel(context.Background())
-    defer cancel()
+type Container struct {
+    Config         config.AppConfig
+    DB             *gorm.DB
+    KafkaClient    *xkafka.Client
+    AuthService    interfaces.AuthService
+    UserService    interfaces.UserService
+    EmailService   interfaces.EmailService
+    ProductService interfaces.ProductService
+}
 
-    startEmailConsumer(ctx)
-    startServer(app)
-    waitForShutdownSignal(app, ctx, cancel)
+func NewContainer() *Container {
+    // Initialize all dependencies
+    // Return container with all services
 }
 ```
 
-### 2. `app.go` - Application Setup
+### 2. `app.go` - Fiber Application Setup
 
-- **Purpose**: Configures the Fiber web framework
-- **Responsibilities**:
-  - Creates and configures Fiber app
-  - Sets up middleware stack
-  - Registers routes
+**Purpose**: Configures the Fiber web framework and routes
+
+**Responsibilities**:
+
+- Creates Fiber app instance
+- Sets up middleware stack
+- Registers all routes
+- Provides access to server and container
 
 ```go
-func setupApp() *fiber.App {
-    app := fiber.New(config.FiberCfg(cfg))
-    setupMiddleware(app)
-    setupRoutes(app)
-    return app
+type App struct {
+    container *Container
+    server    *fiber.App
+}
+
+func NewApp(container *Container) *App {
+    // Setup Fiber app with middleware
+    // Register all routes
+    // Return configured app
 }
 ```
 
-### 3. `consumer.go` - Email Consumer Management
+### 3. `server.go` - Server Lifecycle
 
-- **Purpose**: Manages Kafka email consumer lifecycle
-- **Responsibilities**:
-  - Starts email consumer in background
-  - Handles graceful consumer shutdown
-  - Manages consumer topics
+**Purpose**: Handles server startup, shutdown, and signal management
+
+**Responsibilities**:
+
+- Starts email consumer
+- Starts HTTP server
+- Handles graceful shutdown
+- Manages signal handling
+- Performs resource cleanup
 
 ```go
-func startEmailConsumer(ctx context.Context) {
-    emailTopics := []string{"auth.login", "email.notifications"}
-    // Start consumer in background
+type Server struct {
+    app *App
 }
 
-func stopEmailConsumer(cancel context.CancelFunc) {
+func (s *Server) Start() {
+    // Start email consumer
+    // Start HTTP server
+    // Wait for shutdown signal
     // Graceful shutdown
 }
 ```
 
-### 4. `cleanup.go` - Resource Cleanup
+## Key Features
 
-- **Purpose**: Handles application resource cleanup
-- **Responsibilities**:
-  - Shuts down HTTP server gracefully
-  - Closes database connections
-  - Closes Kafka client
+### 1. **Clear Separation of Concerns**
+
+Each file has a single, well-defined responsibility:
+
+- **Container**: "What services do we need?"
+- **App**: "How do we configure the web framework?"
+- **Server**: "How do we start and stop everything?"
+
+### 2. **Simple Flow**
+
+The application startup follows a clear, linear flow:
 
 ```go
-func shutdownServer(app *fiber.App) {
-    // Graceful server shutdown
-}
-
-func cleanupResources() {
-    // Cleanup all resources
+func Run() {
+    container := NewContainer()    // 1. Setup dependencies
+    app := NewApp(container)      // 2. Configure web app
+    server := NewServer(app)      // 3. Create server
+    server.Start()                // 4. Start everything
 }
 ```
 
-### 5. `signal.go` - Signal Handling
+### 3. **Easy to Understand**
 
-- **Purpose**: Manages OS signals and shutdown coordination
-- **Responsibilities**:
-  - Listens for shutdown signals (SIGINT, SIGTERM)
-  - Coordinates graceful shutdown sequence
-  - Starts HTTP server in background
+- **container.go**: All your services in one place
+- **app.go**: All your routes and middleware in one place
+- **server.go**: All your startup/shutdown logic in one place
+
+## Benefits
+
+### 1. **Maintainability**
+
+- Easy to find and modify specific functionality
+- Clear boundaries between different concerns
+- No scattered initialization logic
+
+### 2. **Testability**
+
+- Each component can be tested independently
+- Easy to mock dependencies
+- Clear interfaces between components
+
+### 3. **Readability**
+
+- Each file is focused and concise
+- Clear naming conventions
+- Logical organization
+
+### 4. **Extensibility**
+
+- Easy to add new services to container
+- Easy to add new routes to app
+- Easy to modify server behavior
+
+## Usage
+
+### Starting the Application
 
 ```go
-func waitForShutdownSignal(app *fiber.App, ctx context.Context, cancel context.CancelFunc) {
-    // Signal handling and shutdown coordination
+// In main.go
+func main() {
+    infrastructure.Run()
 }
 ```
 
-### 6. `container.go` - Dependency Injection
+### Adding New Services
 
-- **Purpose**: Manages application dependencies
-- **Responsibilities**:
-  - Initializes all services
-  - Manages dependency lifecycle
-  - Provides service instances
+1. **Add to Container** (`container.go`):
 
-### 7. `router.go` - Route Registration
+```go
+type Container struct {
+    // ... existing fields
+    NewService interfaces.NewService
+}
 
-- **Purpose**: Registers HTTP routes
-- **Responsibilities**:
-  - Defines API routes
-  - Sets up route handlers
-  - Configures route middleware
+func NewContainer() *Container {
+    // ... existing setup
+    newService := new.NewService(...)
 
-## Benefits of This Architecture
+    return &Container{
+        // ... existing fields
+        NewService: newService,
+    }
+}
+```
 
-### 1. **Separation of Concerns**
+2. **Add Routes** (`app.go`):
 
-Each file has a single, well-defined responsibility, making the code easier to understand and maintain.
+```go
+func setupRoutes(app *fiber.App, container *Container) {
+    api := app.Group("/api/v1")
+    // ... existing routes
+    new.NewHttpHandler(api.Group("/new"), container.NewService)
+}
+```
 
-### 2. **Improved Testability**
+### Customizing Server Behavior
 
-Smaller, focused functions are easier to unit test in isolation.
+Modify `server.go` to customize:
 
-### 3. **Better Maintainability**
-
-Changes to one aspect (e.g., signal handling) don't affect other parts of the codebase.
-
-### 4. **Enhanced Readability**
-
-The main `Run()` function provides a clear overview of the application startup sequence.
-
-### 5. **Easier Debugging**
-
-Issues can be isolated to specific modules, making debugging more efficient.
-
-## Startup Sequence
-
-1. **Application Setup** (`app.go`)
-
-   - Create Fiber app
-   - Configure middleware
-   - Register routes
-
-2. **Context Creation** (`server.go`)
-
-   - Create cancellable context for graceful shutdown
-
-3. **Email Consumer** (`consumer.go`)
-
-   - Start Kafka consumer in background
-
-4. **HTTP Server** (`signal.go`)
-
-   - Start HTTP server in background
-
-5. **Signal Handling** (`signal.go`)
-   - Wait for shutdown signals
-
-## Shutdown Sequence
-
-1. **Signal Received** (`signal.go`)
-
-   - Intercept SIGINT/SIGTERM
-
-2. **Consumer Shutdown** (`consumer.go`)
-
-   - Cancel context
-   - Wait for graceful shutdown
-
-3. **Server Shutdown** (`cleanup.go`)
-
-   - Shutdown HTTP server with timeout
-
-4. **Resource Cleanup** (`cleanup.go`)
-   - Close database connections
-   - Close Kafka client
+- Startup sequence
+- Shutdown timeout
+- Signal handling
+- Resource cleanup
 
 ## Best Practices
 
-### 1. **Context Management**
+### 1. **Keep Files Focused**
 
-- Always use cancellable contexts for background operations
-- Cancel contexts before shutdown to prevent resource leaks
+- Each file should have one clear purpose
+- Don't mix concerns between files
+- Use clear, descriptive names
 
-### 2. **Graceful Shutdown**
+### 2. **Dependency Flow**
 
-- Give background operations time to complete
-- Use timeouts to prevent hanging
+- Container → App → Server
+- Dependencies flow in one direction
+- No circular dependencies
 
 ### 3. **Error Handling**
 
-- Log errors appropriately
-- Don't let errors in one component crash the entire application
+- Handle errors at the appropriate level
+- Log errors meaningfully
+- Don't let errors crash the application
 
 ### 4. **Resource Management**
 
-- Always close resources in the correct order
-- Use defer statements for cleanup
+- Always clean up resources in server.go
+- Use timeouts for graceful shutdown
+- Close connections properly
 
-## Adding New Components
+## Example: Adding a Notification Service
 
-To add a new component to the infrastructure:
-
-1. **Create a new file** for the component's responsibilities
-2. **Add startup function** to initialize the component
-3. **Add shutdown function** to clean up the component
-4. **Update main Run() function** to include the new component
-5. **Update signal handling** to include shutdown coordination
-
-Example:
+### 1. Update Container
 
 ```go
-// new_component.go
-func startNewComponent(ctx context.Context) {
-    // Initialize component
+// container.go
+type Container struct {
+    // ... existing fields
+    NotificationService interfaces.NotificationService
 }
 
-func stopNewComponent() {
-    // Cleanup component
-}
+func NewContainer() *Container {
+    // ... existing setup
+    notificationService := notification.NewService(kafkaClient)
 
-// Update server.go
-func Run() {
-    // ... existing code ...
-    startNewComponent(ctx)
-    // ... existing code ...
-}
-
-// Update signal.go
-func waitForShutdownSignal(app *fiber.App, ctx context.Context, cancel context.CancelFunc) {
-    // ... existing code ...
-    stopNewComponent()
-    // ... existing code ...
+    return &Container{
+        // ... existing fields
+        NotificationService: notificationService,
+    }
 }
 ```
 
-This modular architecture makes the application more maintainable, testable, and easier to understand while preserving all the original functionality.
+### 2. Update App
+
+```go
+// app.go
+func setupRoutes(app *fiber.App, container *Container) {
+    api := app.Group("/api/v1")
+    // ... existing routes
+    notification.NewHttpHandler(api.Group("/notifications"), container.NotificationService)
+}
+```
+
+### 3. Update Server (if needed)
+
+```go
+// server.go
+func (s *Server) Start() {
+    // ... existing startup
+    // Add notification consumer if needed
+}
+```
+
+This three-file architecture provides the perfect balance between simplicity and organization, making your application easy to understand, maintain, and extend.

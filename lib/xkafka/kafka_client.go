@@ -19,7 +19,7 @@ type Config struct {
 	ProducerTimeout time.Duration
 
 	// Default: "default-group"
-	ConsumerGroup string
+	ConsumerGroupID string
 
 	// Default: 10 * time.Second
 	ConsumerTimeout time.Duration
@@ -34,7 +34,7 @@ type Config struct {
 var DefaultConfig = Config{
 	Brokers:         []string{"localhost:9092"},
 	ProducerTimeout: 10 * time.Second,
-	ConsumerGroup:   "default-group",
+	ConsumerGroupID: "default-group",
 	ConsumerTimeout: 10 * time.Second,
 	SaramaConfig:    defaultSaramaConfig(),
 }
@@ -50,13 +50,13 @@ func defaultSaramaConfig() *sarama.Config {
 }
 
 // setConfig sets the Kafka client configuration.
-func setConfig(configs ...Config) Config {
-	if len(configs) == 0 {
+func setConfig(config ...Config) Config {
+	if len(config) == 0 {
 		return DefaultConfig
 	}
 
 	// Override default config with provided configs
-	cfg := configs[0]
+	cfg := config[0]
 
 	// Set default values if not provided
 	if len(cfg.Brokers) == 0 {
@@ -65,8 +65,8 @@ func setConfig(configs ...Config) Config {
 	if cfg.ProducerTimeout == 0 {
 		cfg.ProducerTimeout = DefaultConfig.ProducerTimeout
 	}
-	if cfg.ConsumerGroup == "" {
-		cfg.ConsumerGroup = DefaultConfig.ConsumerGroup
+	if cfg.ConsumerGroupID == "" {
+		cfg.ConsumerGroupID = DefaultConfig.ConsumerGroupID
 	}
 	if cfg.ConsumerTimeout == 0 {
 		cfg.ConsumerTimeout = DefaultConfig.ConsumerTimeout
@@ -88,8 +88,8 @@ type Client struct {
 }
 
 // NewClient creates a new Kafka client.
-func NewClient(configs ...Config) (*Client, error) {
-	cfg := setConfig(configs...)
+func NewClient(config ...Config) (*Client, error) {
+	cfg := setConfig(config...)
 
 	producer, err := sarama.NewSyncProducer(cfg.Brokers, cfg.SaramaConfig)
 	if err != nil {
@@ -127,11 +127,11 @@ type ConsumerHandler interface {
 
 // Consume starts consuming messages from the specified topics using the provided handler.
 func (c *Client) Consume(ctx context.Context, topics []string, handler ConsumerHandler) error {
-	if c.config.ConsumerGroup == "" {
+	if c.config.ConsumerGroupID == "" {
 		return fmt.Errorf("consumer group not specified")
 	}
 
-	consumerGroup, err := sarama.NewConsumerGroup(c.config.Brokers, c.config.ConsumerGroup, c.config.SaramaConfig)
+	consumerGroup, err := sarama.NewConsumerGroup(c.config.Brokers, c.config.ConsumerGroupID, c.config.SaramaConfig)
 	if err != nil {
 		return fmt.Errorf("failed to create consumer group: %w", err)
 	}

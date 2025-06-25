@@ -8,8 +8,8 @@ import (
 
 func Setup(kafkaCfg config.KafkaConfig) *Client {
 	client, err := NewClient(Config{
-		Brokers:       kafkaCfg.Brokers,
-		ConsumerGroup: kafkaCfg.GroupId,
+		Brokers:         kafkaCfg.Brokers,
+		ConsumerGroupID: kafkaCfg.GroupId,
 	})
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create Kafka client")
