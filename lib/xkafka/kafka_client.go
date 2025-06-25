@@ -12,32 +12,75 @@ import (
 
 // Config holds Kafka client configuration.
 type Config struct {
-	Brokers         []string
+	// Default: []string{"localhost:9092"}
+	Brokers []string
+
+	// Default: 10 * time.Second
 	ProducerTimeout time.Duration
-	ConsumerGroup   string
+
+	// Default: "default-group"
+	ConsumerGroupID string
+
+	// Default: 10 * time.Second
 	ConsumerTimeout time.Duration
-	SaramaConfig    *sarama.Config
+
+	// SaramaConfig holds the Sarama configuration.
+	// Default: sarama.NewConfig() with sensible defaults
+	// Set this to nil to use the default Sarama configuration.
+	SaramaConfig *sarama.Config
 }
 
-// DefaultConfig returns a default Kafka configuration.
-func DefaultConfig() *Config {
+// defaultConfig returns a default Kafka configuration.
+var DefaultConfig = Config{
+	Brokers:         []string{"localhost:9092"},
+	ProducerTimeout: 10 * time.Second,
+	ConsumerGroupID: "default-group",
+	ConsumerTimeout: 10 * time.Second,
+	SaramaConfig:    defaultSaramaConfig(),
+}
+
+// defaultConfig returns a default sarama kafka configuration.
+func defaultSaramaConfig() *sarama.Config {
 	config := sarama.NewConfig()
 	config.Producer.Return.Successes = true
 	config.Producer.Return.Errors = true
 	config.Consumer.Return.Errors = true
 	config.Version = sarama.V2_8_0_0 // Adjust based on your Kafka version
+	return config
+}
 
-	return &Config{
-		Brokers:         []string{"localhost:9092"},
-		ProducerTimeout: 10 * time.Second,
-		ConsumerTimeout: 10 * time.Second,
-		SaramaConfig:    config,
+// setConfig sets the Kafka client configuration.
+func setConfig(config ...Config) Config {
+	if len(config) == 0 {
+		return DefaultConfig
 	}
+
+	// Override default config with provided configs
+	cfg := config[0]
+
+	// Set default values if not provided
+	if len(cfg.Brokers) == 0 {
+		cfg.Brokers = DefaultConfig.Brokers
+	}
+	if cfg.ProducerTimeout == 0 {
+		cfg.ProducerTimeout = DefaultConfig.ProducerTimeout
+	}
+	if cfg.ConsumerGroupID == "" {
+		cfg.ConsumerGroupID = DefaultConfig.ConsumerGroupID
+	}
+	if cfg.ConsumerTimeout == 0 {
+		cfg.ConsumerTimeout = DefaultConfig.ConsumerTimeout
+	}
+	if cfg.SaramaConfig == nil {
+		cfg.SaramaConfig = defaultSaramaConfig()
+	}
+
+	return cfg
 }
 
 // Client wraps Kafka producer and consumer group functionality.
 type Client struct {
-	config        *Config
+	config        Config
 	producer      sarama.SyncProducer // Use SyncProducer
 	consumerGroup sarama.ConsumerGroup
 	closed        chan struct{}
@@ -45,14 +88,8 @@ type Client struct {
 }
 
 // NewClient creates a new Kafka client.
-func NewClient(cfg *Config) (*Client, error) {
-	if cfg == nil {
-		cfg = DefaultConfig()
-	}
-
-	if len(cfg.Brokers) == 0 {
-		return nil, fmt.Errorf("no brokers specified")
-	}
+func NewClient(config ...Config) (*Client, error) {
+	cfg := setConfig(config...)
 
 	producer, err := sarama.NewSyncProducer(cfg.Brokers, cfg.SaramaConfig)
 	if err != nil {
@@ -69,10 +106,9 @@ func NewClient(cfg *Config) (*Client, error) {
 }
 
 // Produce sends a message to the specified topic.
-func (c *Client) Produce(ctx context.Context, topic string, key, value []byte) error {
+func (c *Client) Produce(ctx context.Context, topic string, value []byte) error {
 	msg := &sarama.ProducerMessage{
 		Topic: topic,
-		Key:   sarama.ByteEncoder(key),
 		Value: sarama.ByteEncoder(value),
 	}
 	select {
@@ -91,11 +127,11 @@ type ConsumerHandler interface {
 
 // Consume starts consuming messages from the specified topics using the provided handler.
 func (c *Client) Consume(ctx context.Context, topics []string, handler ConsumerHandler) error {
-	if c.config.ConsumerGroup == "" {
+	if c.config.ConsumerGroupID == "" {
 		return fmt.Errorf("consumer group not specified")
 	}
 
-	consumerGroup, err := sarama.NewConsumerGroup(c.config.Brokers, c.config.ConsumerGroup, c.config.SaramaConfig)
+	consumerGroup, err := sarama.NewConsumerGroup(c.config.Brokers, c.config.ConsumerGroupID, c.config.SaramaConfig)
 	if err != nil {
 		return fmt.Errorf("failed to create consumer group: %w", err)
 	}

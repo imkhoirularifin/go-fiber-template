@@ -1,13 +1,16 @@
 package xkafka
 
-import "github.com/rs/zerolog/log"
+import (
+	"go-fiber-template/lib/config"
 
-func Setup() *Client {
-	cfg := DefaultConfig()
-	cfg.Brokers = []string{"localhost:9092"}
-	cfg.ConsumerGroup = "go-fiber-template"
+	"github.com/rs/zerolog/log"
+)
 
-	client, err := NewClient(cfg)
+func Setup(kafkaCfg config.KafkaConfig) *Client {
+	client, err := NewClient(Config{
+		Brokers:         kafkaCfg.Brokers,
+		ConsumerGroupID: kafkaCfg.GroupId,
+	})
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create Kafka client")
 	}

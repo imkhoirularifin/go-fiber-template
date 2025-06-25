@@ -4,6 +4,7 @@ import (
 	"go-fiber-template/internal/auth"
 	"go-fiber-template/internal/domain/interfaces"
 	"go-fiber-template/internal/email"
+	"go-fiber-template/internal/product"
 	"go-fiber-template/internal/user"
 	"go-fiber-template/lib/config"
 	"go-fiber-template/lib/database"
@@ -14,29 +15,44 @@ import (
 	"gorm.io/gorm"
 )
 
-var (
-	cfg         config.AppConfig
-	dbInstance  *database.Database
-	db          *gorm.DB
-	kafkaClient *xkafka.Client
+type Container struct {
+	Config         config.AppConfig
+	DB             *gorm.DB
+	KafkaClient    *xkafka.Client
+	AuthService    interfaces.AuthService
+	UserService    interfaces.UserService
+	EmailService   interfaces.EmailService
+	ProductService interfaces.ProductService
+}
 
-	userRepository interfaces.UserRepository
-
-	authService  interfaces.AuthService
-	userService  interfaces.UserService
-	emailService interfaces.EmailService
-)
-
-func init() {
-	cfg = config.Setup()
+func NewContainer() *Container {
+	cfg := config.Setup()
 	xlogger.Setup(cfg)
 	xvalidator.Setup()
-	setupDB()
-	kafkaClient = xkafka.Setup()
 
-	userRepository = user.NewRepository(db)
+	dbInstance := database.New(database.Config{
+		Driver: cfg.Database.Driver,
+		Dsn:    cfg.Database.Dsn,
+	})
+	db := dbInstance.GetDB()
 
-	authService = auth.NewService(userRepository, kafkaClient)
-	userService = user.NewService(userRepository)
-	emailService = email.NewService(kafkaClient)
+	kafkaClient := xkafka.Setup(cfg.Kafka)
+
+	userRepository := user.NewRepository(db)
+	productRepository := product.NewRepository(db)
+
+	authService := auth.NewService(userRepository, kafkaClient)
+	userService := user.NewService(userRepository)
+	emailService := email.NewService(kafkaClient)
+	productService := product.NewService(productRepository)
+
+	return &Container{
+		Config:         cfg,
+		DB:             db,
+		KafkaClient:    kafkaClient,
+		AuthService:    authService,
+		UserService:    userService,
+		EmailService:   emailService,
+		ProductService: productService,
+	}
 }

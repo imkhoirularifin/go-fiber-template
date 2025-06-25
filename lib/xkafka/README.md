@@ -1,133 +1,434 @@
-# Kafka Go Library
+# XKafka Library
 
-A lightweight Go library for interacting with Apache Kafka using the [Sarama](https://github.com/IBM/sarama) package. This library simplifies producing and consuming messages across microservices, providing a reusable abstraction with support for async producers and consumer groups.
+A simple and robust Kafka client library for Go applications built on top of Sarama. This library provides easy-to-use producer and consumer functionality with sensible defaults and graceful shutdown handling.
 
 ## Features
 
-- **Simplified Interface**: Easy-to-use methods for producing and consuming Kafka messages.
-- **Async Producer**: High-throughput message production with error and success handling.
-- **Consumer Groups**: Scalable and fault-tolerant message consumption.
-- **Graceful Shutdown**: Supports context cancellation and resource cleanup.
-- **Configurable**: Flexible configuration for brokers, timeouts, and Sarama settings.
+- ✅ **Simple API**: Easy-to-use producer and consumer interfaces
+- ✅ **Sensible Defaults**: Pre-configured with production-ready settings
+- ✅ **Graceful Shutdown**: Proper cleanup of resources
+- ✅ **Error Handling**: Comprehensive error handling and logging
+- ✅ **Context Support**: Full context support for cancellation
+- ✅ **Consumer Groups**: Built-in consumer group support
+- ✅ **Sync Producer**: Reliable message delivery with sync producer
 
 ## Installation
 
-1. Initialize a Go module in your project:
+```bash
+go get github.com/IBM/sarama
+```
 
-   ```bash
-   go mod init your-module-name
-   ```
+## Quick Start
 
-2. Add the Kafka library dependency (assuming the library is hosted at `github.com/yourusername/kafka-lib`):
-
-   ```bash
-   go get github.com/yourusername/kafka-lib
-   ```
-
-3. Install the Sarama dependency:
-
-   ```bash
-   go get github.com/IBM/sarama
-   ```
-
-4. Ensure your Kafka cluster is running and accessible (e.g., at `localhost:9092`).
-
-## Example Usage
-
-Below is an example of how to use the Kafka library in a Go microservice to produce and consume messages.
+### Basic Setup
 
 ```go
 package main
 
 import (
-	"context"
-	"fmt"
-	"log"
-	"time"
+    "context"
+    "log"
+    "time"
 
-	"github.com/yourusername/kafka-lib"
-	"github.com/IBM/sarama"
+    "your-project/lib/xkafka"
 )
 
-// myHandler implements the ConsumerHandler interface
-type myHandler struct{}
+func main() {
+    // Create Kafka client with default configuration
+    client, err := xkafka.NewClient()
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer client.Close()
 
-func (h *myHandler) HandleMessage(msg *sarama.ConsumerMessage) error {
-	fmt.Printf("Received message: Topic=%s, Key=%s, Value=%s\n", msg.Topic, string(msg.Key), string(msg.Value))
-	return nil
+    // Your application logic here
+}
+```
+
+### Custom Configuration
+
+```go
+// Custom configuration
+config := xkafka.Config{
+    Brokers:         []string{"kafka1:9092", "kafka2:9092"},
+    ProducerTimeout: 5 * time.Second,
+    ConsumerGroupID: "my-app-group",
+    ConsumerTimeout: 5 * time.Second,
+}
+
+client, err := xkafka.NewClient(config)
+if err != nil {
+    log.Fatal(err)
+}
+defer client.Close()
+```
+
+## Producer Examples
+
+### Simple Message Production
+
+```go
+package main
+
+import (
+    "context"
+    "log"
+
+    "your-project/lib/xkafka"
+)
+
+func main() {
+    client, err := xkafka.NewClient()
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer client.Close()
+
+    ctx := context.Background()
+
+    // Send a simple message
+    message := []byte("Hello, Kafka!")
+    err = client.Produce(ctx, "my-topic", message)
+    if err != nil {
+        log.Printf("Failed to produce message: %v", err)
+    }
+
+    log.Println("Message sent successfully!")
+}
+```
+
+### Batch Message Production
+
+```go
+func sendBatchMessages(client *xkafka.Client) {
+    ctx := context.Background()
+    messages := []string{
+        "First message",
+        "Second message",
+        "Third message",
+    }
+
+    for _, msg := range messages {
+        err := client.Produce(ctx, "batch-topic", []byte(msg))
+        if err != nil {
+            log.Printf("Failed to send message '%s': %v", msg, err)
+            continue
+        }
+        log.Printf("Sent: %s", msg)
+    }
+}
+```
+
+## Consumer Examples
+
+### Simple Message Consumer
+
+```go
+package main
+
+import (
+    "context"
+    "log"
+
+    "github.com/IBM/sarama"
+    "your-project/lib/xkafka"
+)
+
+// MessageHandler implements the ConsumerHandler interface
+type MessageHandler struct{}
+
+func (h *MessageHandler) HandleMessage(msg *sarama.ConsumerMessage) error {
+    log.Printf("Received message from topic %s: %s", msg.Topic, string(msg.Value))
+    return nil
 }
 
 func main() {
-	// Configure the Kafka client
-	cfg := kafka.DefaultConfig()
-	cfg.Brokers = []string{"kafka-broker:9092"} // Replace with your Kafka broker(s)
-	cfg.ConsumerGroup = "my-consumer-group"
+    client, err := xkafka.NewClient()
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer client.Close()
 
-	// Create a new Kafka client
-	client, err := kafka.NewClient(cfg)
-	if err != nil {
-		log.Fatalf("Failed to create client: %v", err)
-	}
-	defer client.Close()
+    ctx := context.Background()
+    handler := &MessageHandler{}
+    topics := []string{"my-topic"}
 
-	// Start consuming messages in a goroutine
-	go func() {
-		if err := client.Consume(context.Background(), []string{"my-topic"}, &myHandler{}); err != nil {
-			log.Fatalf("Consumer error: %v", err)
-		}
-	}()
+    // Start consuming messages
+    err = client.Consume(ctx, topics, handler)
+    if err != nil {
+        log.Fatal(err)
+    }
 
-	// Produce a message
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	if err := client.Produce(ctx, "my-topic", []byte("key"), []byte("Hello, Kafka!")); err != nil {
-		log.Printf("Failed to produce message: %v", err)
-	}
-
-	// Keep the service running
-	select {}
+    // Keep the application running
+    select {}
 }
 ```
 
-## Configuration
-
-The library uses a `Config` struct to customize Kafka settings. Use `kafka.DefaultConfig()` to get a default configuration with sensible defaults, or create a custom configuration:
+### Advanced Consumer with Error Handling
 
 ```go
-cfg := &kafka.Config{
-	Brokers:         []string{"broker1:9092", "broker2:9092"},
-	ProducerTimeout: 10 * time.Second,
-	ConsumerTimeout: 10 * time.Second,
-	ConsumerGroup:   "my-consumer-group",
-	SaramaConfig:    sarama.NewConfig(), // Customize Sarama settings here
+type AdvancedHandler struct {
+    processedCount int
+}
+
+func (h *AdvancedHandler) HandleMessage(msg *sarama.ConsumerMessage) error {
+    h.processedCount++
+
+    log.Printf("Processing message #%d from topic %s", h.processedCount, msg.Topic)
+
+    // Simulate some processing
+    if err := h.processMessage(msg); err != nil {
+        log.Printf("Failed to process message: %v", err)
+        return err // Return error to indicate processing failure
+    }
+
+    log.Printf("Successfully processed message #%d", h.processedCount)
+    return nil
+}
+
+func (h *AdvancedHandler) processMessage(msg *sarama.ConsumerMessage) error {
+    // Your message processing logic here
+    // For example: parse JSON, save to database, etc.
+    return nil
 }
 ```
 
-### Key Configuration Options
+## Configuration Options
 
-- **Brokers**: List of Kafka broker addresses.
-- **ProducerTimeout**: Timeout for producing messages.
-- **ConsumerTimeout**: Timeout for consumer operations.
-- **ConsumerGroup**: Name of the consumer group for message consumption.
-- **SaramaConfig**: Sarama configuration for advanced settings (e.g., Kafka version, TLS, retries).
+### Default Configuration
+
+```go
+var DefaultConfig = Config{
+    Brokers:         []string{"localhost:9092"},
+    ProducerTimeout: 10 * time.Second,
+    ConsumerGroupID: "default-group",
+    ConsumerTimeout: 10 * time.Second,
+    SaramaConfig:    defaultSaramaConfig(),
+}
+```
+
+### Custom Sarama Configuration
+
+```go
+import "github.com/IBM/sarama"
+
+// Custom Sarama configuration
+saramaConfig := sarama.NewConfig()
+saramaConfig.Producer.Return.Successes = true
+saramaConfig.Producer.Return.Errors = true
+saramaConfig.Consumer.Return.Errors = true
+saramaConfig.Version = sarama.V2_8_0_0
+
+config := xkafka.Config{
+    Brokers:      []string{"kafka:9092"},
+    SaramaConfig: saramaConfig,
+}
+
+client, err := xkafka.NewClient(config)
+```
+
+## Complete Example: Producer and Consumer
+
+```go
+package main
+
+import (
+    "context"
+    "log"
+    "time"
+
+    "github.com/IBM/sarama"
+    "your-project/lib/xkafka"
+)
+
+type MyHandler struct{}
+
+func (h *MyHandler) HandleMessage(msg *sarama.ConsumerMessage) error {
+    log.Printf("Consumer received: %s", string(msg.Value))
+    return nil
+}
+
+func main() {
+    // Create client
+    client, err := xkafka.NewClient()
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer client.Close()
+
+    ctx, cancel := context.WithCancel(context.Background())
+    defer cancel()
+
+    // Start consumer in background
+    go func() {
+        handler := &MyHandler{}
+        topics := []string{"test-topic"}
+
+        if err := client.Consume(ctx, topics, handler); err != nil {
+            log.Printf("Consumer error: %v", err)
+        }
+    }()
+
+    // Give consumer time to start
+    time.Sleep(2 * time.Second)
+
+    // Send some messages
+    messages := []string{"Hello", "World", "Kafka"}
+    for _, msg := range messages {
+        err := client.Produce(ctx, "test-topic", []byte(msg))
+        if err != nil {
+            log.Printf("Failed to produce message: %v", err)
+        } else {
+            log.Printf("Produced: %s", msg)
+        }
+        time.Sleep(500 * time.Millisecond)
+    }
+
+    // Keep running for a while to see messages
+    time.Sleep(5 * time.Second)
+    log.Println("Shutting down...")
+}
+```
 
 ## Error Handling
 
-- Producer errors and successes are logged in a background goroutine.
-- Consumer errors are logged during message processing.
-- Implement the `ConsumerHandler` interface to handle consumed messages and errors as needed.
+### Producer Errors
 
-## Dependencies
+```go
+err := client.Produce(ctx, "topic", []byte("message"))
+if err != nil {
+    switch {
+    case err.Error() == "client closed":
+        log.Println("Client was closed, cannot send message")
+    default:
+        log.Printf("Producer error: %v", err)
+    }
+}
+```
 
-- [Sarama](https://github.com/IBM/sarama): Apache Kafka client library for Go.
-- Go 1.18 or higher.
+### Consumer Errors
 
-## Notes
+```go
+func (h *MyHandler) HandleMessage(msg *sarama.ConsumerMessage) error {
+    // Your processing logic
+    if err := h.processMessage(msg); err != nil {
+        // Log the error but don't panic
+        log.Printf("Failed to process message: %v", err)
 
-- Ensure your Kafka cluster is running and accessible at the specified broker addresses.
-- Adjust the Kafka version in `SaramaConfig` to match your cluster (default is `V2_8_0_0`).
-- For production, configure TLS and authentication in `SaramaConfig` as needed.
+        // You can choose to return the error to indicate processing failure
+        // or return nil to continue processing other messages
+        return err
+    }
+    return nil
+}
+```
 
-## License
+## Graceful Shutdown
 
-MIT License. See [LICENSE](LICENSE) for details.
+The library handles graceful shutdown automatically:
+
+```go
+func main() {
+    client, err := xkafka.NewClient()
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    // The client will be properly closed when the application exits
+    defer client.Close()
+
+    // Your application logic
+    // When the application receives a shutdown signal,
+    // the client.Close() will be called automatically
+}
+```
+
+## Best Practices
+
+### 1. **Always Close the Client**
+
+```go
+client, err := xkafka.NewClient()
+if err != nil {
+    log.Fatal(err)
+}
+defer client.Close() // Always close the client
+```
+
+### 2. **Use Context for Cancellation**
+
+```go
+ctx, cancel := context.WithCancel(context.Background())
+defer cancel()
+
+// Use ctx for both producer and consumer operations
+err := client.Produce(ctx, "topic", []byte("message"))
+```
+
+### 3. **Handle Consumer Errors Gracefully**
+
+```go
+func (h *MyHandler) HandleMessage(msg *sarama.ConsumerMessage) error {
+    // Don't panic on errors, log them and continue
+    if err := h.processMessage(msg); err != nil {
+        log.Printf("Processing error: %v", err)
+        // Return error only if you want to stop processing
+        return nil // Continue processing other messages
+    }
+    return nil
+}
+```
+
+### 4. **Use Appropriate Timeouts**
+
+```go
+config := xkafka.Config{
+    ProducerTimeout: 5 * time.Second,  // Shorter for interactive apps
+    ConsumerTimeout: 10 * time.Second, // Longer for batch processing
+}
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Connection Refused**
+
+   - Check if Kafka brokers are running
+   - Verify broker addresses in configuration
+
+2. **Consumer Group Errors**
+
+   - Ensure unique consumer group IDs for different applications
+   - Check if consumer group exists
+
+3. **Message Delivery Failures**
+   - Check topic exists and has proper permissions
+   - Verify producer configuration
+
+### Debug Mode
+
+Enable Sarama debug logging:
+
+```go
+import "github.com/IBM/sarama"
+
+sarama.Logger = log.New(os.Stdout, "[Sarama] ", log.LstdFlags)
+```
+
+## API Reference
+
+### Types
+
+- `Config`: Kafka client configuration
+- `Client`: Main Kafka client
+- `ConsumerHandler`: Interface for message handlers
+
+### Methods
+
+- `NewClient(config ...Config) (*Client, error)`: Create new client
+- `Produce(ctx context.Context, topic string, value []byte) error`: Send message
+- `Consume(ctx context.Context, topics []string, handler ConsumerHandler) error`: Start consuming
+- `Close() error`: Gracefully close client
+
+This library provides a simple yet powerful interface for working with Kafka in Go applications. It handles the complexity of Sarama while providing a clean, easy-to-use API.
