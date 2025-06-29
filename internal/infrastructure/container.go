@@ -17,6 +17,7 @@ import (
 
 var (
 	cfg         config.AppConfig
+	dbInstance  *database.Database
 	db          *gorm.DB
 	kafkaClient *xkafka.Client
 
@@ -31,7 +32,7 @@ func init() {
 	xlogger.Setup(cfg)
 	xvalidator.Setup()
 
-	dbInstance := database.New(database.Config{
+	dbInstance = database.New(database.Config{
 		Driver: cfg.Database.Driver,
 		Dsn:    cfg.Database.Dsn,
 	})

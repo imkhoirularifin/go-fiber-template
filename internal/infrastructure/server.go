@@ -77,11 +77,10 @@ func shutdown(cancel context.CancelFunc) {
 }
 
 func cleanupResources() {
-	sqlDB, err := db.DB()
-	if err == nil {
-		if err := sqlDB.Close(); err != nil {
-			log.Error().Err(err).Msg("Failed to close database connection")
-		}
+	if err := dbInstance.Close(); err != nil {
+		log.Error().Err(err).Msg("Failed to close database connection")
 	}
-	kafkaClient.Close()
+	if err := kafkaClient.Close(); err != nil {
+		log.Error().Err(err).Msg("Failed to close kafka client")
+	}
 }
