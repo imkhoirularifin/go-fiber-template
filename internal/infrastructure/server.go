@@ -3,80 +3,85 @@ package infrastructure
 import (
 	"context"
 	"fmt"
+	"go-fiber-template/lib/config"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	apitally "github.com/apitally/apitally-go/fiber"
+	"github.com/gofiber/contrib/fiberi18n/v2"
+	"github.com/gofiber/contrib/fiberzerolog"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cache"
+	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/rs/zerolog/log"
 )
 
-type Server struct {
-	app *App
-}
+var (
+	server *fiber.App
+)
 
-func NewServer(app *App) *Server {
-	return &Server{
-		app: app,
-	}
-}
+func Run() {
+	server = fiber.New(config.FiberCfg(cfg))
 
-func (s *Server) Start() {
+	// Middleware
+	server.Use(fiberi18n.New(config.I18nConfig))
+	server.Use(apitally.Middleware(server, config.ApitallyCfg(cfg)))
+	server.Use(fiberzerolog.New(config.FiberZerologCfg(cfg)))
+	server.Use(recover.New())
+	server.Use(cors.New(config.CorsCfg))
+	server.Use(cache.New(config.CacheCfg))
+
+	// Routes
+	registerRoutes(server)
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	go func() {
 		emailTopics := []string{"auth.login"}
-		if err := s.app.GetContainer().EmailService.StartEmailConsumer(ctx, emailTopics); err != nil {
+		if err := emailService.StartEmailConsumer(ctx, emailTopics); err != nil {
 			log.Error().Err(err).Msg("Failed to start email consumer")
 		}
 	}()
 
 	go func() {
-		log.Info().Msgf("Server is running on port %s", s.app.GetContainer().Config.Port)
-		if err := s.app.GetServer().Listen(fmt.Sprintf(":%s", s.app.GetContainer().Config.Port)); err != nil {
+		log.Info().Msgf("Server is running on port %s", cfg.Port)
+		if err := server.Listen(fmt.Sprintf(":%s", cfg.Port)); err != nil {
 			log.Error().Err(err).Msg("Failed to start server")
 		}
 	}()
 
-	s.waitForShutdownSignal(cancel)
+	waitForShutdownSignal(cancel)
 }
 
-func (s *Server) waitForShutdownSignal(cancel context.CancelFunc) {
+func waitForShutdownSignal(cancel context.CancelFunc) {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-
 	<-c
 	log.Info().Msg("Received shutdown signal")
-
-	s.Shutdown(cancel)
+	shutdown(cancel)
 }
 
-func (s *Server) Shutdown(cancel context.CancelFunc) {
+func shutdown(cancel context.CancelFunc) {
 	cancel()
 	time.Sleep(1 * time.Second)
-
 	log.Info().Msg("Shutting down server...")
-	if err := s.app.GetServer().ShutdownWithTimeout(3 * time.Second); err != nil {
-		log.Error().Err(err).Msg("Failed to gracefully shutdown server")
+	if err := server.ShutdownWithTimeout(3 * time.Second); err != nil {
+		log.Error().Err(err).Msg("Failed to shutdown server")
 	}
-
-	s.cleanupResources()
-
-	log.Info().Msg("Application shutdown complete")
+	cleanupResources()
+	log.Info().Msg("Server shutdown complete")
 }
 
-func (s *Server) cleanupResources() {
-	log.Info().Msg("Running cleanup tasks...")
-
-	sqlDB, err := s.app.GetContainer().DB.DB()
+func cleanupResources() {
+	sqlDB, err := db.DB()
 	if err == nil {
 		if err := sqlDB.Close(); err != nil {
 			log.Error().Err(err).Msg("Failed to close database connection")
 		}
 	}
-
-	s.app.GetContainer().KafkaClient.Close()
-
-	log.Info().Msg("Cleanup tasks completed")
+	kafkaClient.Close()
 }
