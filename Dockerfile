@@ -1,4 +1,4 @@
-ARG GO_VERSION=1.23.3-alpine3.20
+ARG GO_VERSION=1.24.2-alpine3.20
 ARG ALPINE_VERSION=3.21.3
 
 # Build stage

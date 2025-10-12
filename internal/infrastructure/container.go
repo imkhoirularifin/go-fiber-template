@@ -34,7 +34,7 @@ func init() {
 
 	dbInstance = database.New(database.Config{
 		Driver: cfg.Database.Driver,
-		Dsn:    cfg.Database.Dsn,
+		Dsn:    cfg.Database.DbString,
 	})
 	db = dbInstance.GetDB()
 
