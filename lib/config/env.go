@@ -16,7 +16,7 @@ type AppConfig struct {
 	GoEnv     string         `env:"GO_ENV" envDefault:"development" validate:"oneof=development production"`
 	LogFields []string       `env:"LOG_FIELDS" envSeparator:"," envDefault:"latency,status,method,url,error"`
 	Jwt       JwtConfig      `envPrefix:"JWT_"`
-	Database  DatabaseConfig `envPrefix:"DB_"`
+	Database  DatabaseConfig `envPrefix:"GOOSE_"`
 	Apitally  ApitallyConfig `envPrefix:"APITALLY_"`
 	Kafka     KafkaConfig    `envPrefix:"KAFKA_"`
 }
@@ -27,8 +27,9 @@ type JwtConfig struct {
 }
 
 type DatabaseConfig struct {
-	Driver string `env:"DRIVER" envDefault:"postgres"`
-	Dsn    string `env:"DSN" envDefault:"host=localhost user=postgres password=secret dbname=mydb port=5432 sslmode=disable"`
+	Driver       string `env:"DRIVER" envDefault:"postgres"`
+	DbString     string `env:"DBSTRING" envDefault:"host=localhost user=postgres password=secret dbname=mydb port=5432 sslmode=disable"`
+	MigrationDir string `env:"MIGRATION_DIR" envDefault:"./migrations"`
 }
 
 type ApitallyConfig struct {
