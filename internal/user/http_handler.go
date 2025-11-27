@@ -6,39 +6,38 @@ import (
 	"go-fiber-template/lib/middleware"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/ryanbekhen/di"
 )
 
 type httpHandler struct {
 	userService interfaces.UserService
 }
 
-func NewHttpHandler(r fiber.Router, userService interfaces.UserService) {
+func NewHttpHandler(r fiber.Router) {
+	userService := di.MustResolve[interfaces.UserService]()
+	authMiddleware := di.MustResolve[middleware.JWTAuthMiddleware]()
+
 	handler := &httpHandler{
 		userService: userService,
 	}
 
-	r.Get("/:id", middleware.Protected(), handler.FindByID)
+	r.Get("/self", authMiddleware.Validate(), handler.FindSelf)
 }
 
-// @Summary		Find user by ID
-// @Description	Find user by ID
+// @Summary		Find self user
+// @Description	Find self user
 // @Tags			User
 // @Accept			application/json
 // @Produce		application/json
-// @Security		Bearer
-// @Param			id	path		int	true	"User ID"
 // @Success		200	{object}	dto.ResponseDto{data=dto.UserDto}
-// @Failure		400	{object}	dto.ResponseDto
-// @Failure		404	{object}	dto.ResponseDto
-// @Failure		500	{object}	dto.ResponseDto
-// @Router			/users/{id} [get]
-func (h *httpHandler) FindByID(c *fiber.Ctx) error {
-	id, err := c.ParamsInt("id")
-	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "invalid user ID")
-	}
-
-	data, err := h.userService.FindByID(c, uint(id))
+// @Failure		400		{object}	dto.ResponseDto
+// @Failure		401		{object}	dto.ResponseDto
+// @Failure		404		{object}	dto.ResponseDto
+// @Failure		500		{object}	dto.ResponseDto
+// @Router			/users/self [get]
+// @Security		Bearer
+func (h *httpHandler) FindSelf(c *fiber.Ctx) error {
+	data, err := h.userService.FindSelf(c)
 	if err != nil {
 		return err
 	}

@@ -2,6 +2,8 @@ package main
 
 import "go-fiber-template/internal/infrastructure"
 
+//go:generate swag init --parseDependency
+
 //	@title			Go Fiber Template API Documentation
 //	@version		1.0
 //	@description	Go Fiber Template API Documentation

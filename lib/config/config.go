@@ -2,10 +2,10 @@ package config
 
 import (
 	"go-fiber-template/lib/common"
+	"go-fiber-template/lib/constant"
 	"go-fiber-template/lib/utils"
 	"time"
 
-	apitally "github.com/apitally/apitally-go/fiber"
 	"github.com/gofiber/contrib/fiberi18n/v2"
 	"github.com/gofiber/contrib/fiberzerolog"
 	"github.com/gofiber/fiber/v2"
@@ -23,32 +23,12 @@ func FiberCfg(cfg AppConfig) fiber.Config {
 	}
 }
 
-var CorsCfg = cors.Config{
-	AllowOrigins:     "http://localhost:3000",
-	AllowMethods:     "GET,POST,HEAD,PUT,DELETE,PATCH",
-	AllowHeaders:     "*",
-	AllowCredentials: true,
-}
-
-// map apitally environment
-var mapEnv = map[string]string{
-	"development": "dev",
-	"production":  "prod",
-}
-
-func ApitallyCfg(cfg AppConfig) *apitally.Config {
-	return &apitally.Config{
-		ClientId: cfg.Apitally.ClientId,
-		Env:      mapEnv[cfg.GoEnv],
-		RequestLoggingConfig: &apitally.RequestLoggingConfig{
-			Enabled:            true,
-			LogQueryParams:     true,
-			LogRequestHeaders:  true,
-			LogRequestBody:     true,
-			LogResponseHeaders: true,
-			LogResponseBody:    true,
-			LogPanic:           true,
-		},
+func CorsCfg(cfg AppConfig) cors.Config {
+	return cors.Config{
+		AllowOrigins:     cfg.Cors.AllowOrigins,
+		AllowMethods:     "GET,POST,HEAD,PUT,DELETE,PATCH",
+		AllowHeaders:     "*",
+		AllowCredentials: cfg.Cors.AllowCredentials,
 	}
 }
 
@@ -58,17 +38,23 @@ func FiberZerologCfg(cfg AppConfig) fiberzerolog.Config {
 		Fields:          cfg.LogFields,
 		WrapHeaders:     true,
 		FieldsSnakeCase: true,
+		SkipURIs:        []string{"/api/v1/ping"},
+		Next:            common.SkipLog,
 	}
 }
 
+var mapLanguageTags = map[string]language.Tag{
+	"id":    language.Indonesian,
+	"en-US": language.AmericanEnglish,
+}
+
 var I18nConfig = &fiberi18n.Config{
-	RootPath:        "./localize",
-	AcceptLanguages: []language.Tag{language.Indonesian, language.English},
-	DefaultLanguage: language.English,
+	RootPath:        "./lib/i18n",
+	AcceptLanguages: []language.Tag{language.Indonesian, language.AmericanEnglish},
+	DefaultLanguage: mapLanguageTags[constant.DefaultLanguage],
 }
 
 var CacheCfg = cache.Config{
-	Next:                 nil,
 	Expiration:           1 * time.Minute,
 	CacheHeader:          "X-Cache",
 	CacheControl:         false,

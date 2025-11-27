@@ -2,6 +2,22 @@ basePath: /api/v1
 consumes:
 - application/json
 definitions:
+  dto.CreateProductRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+      price:
+        type: number
+      stock:
+        type: integer
+    required:
+    - description
+    - name
+    - price
+    - stock
+    type: object
   dto.ErrorValidationDto:
     properties:
       field:
@@ -24,6 +40,43 @@ definitions:
     properties:
       access_token:
         type: string
+      expires_at:
+        type: string
+      refresh_token:
+        type: string
+    type: object
+  dto.ProductDto:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      price:
+        type: number
+      stock:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  dto.RefreshTokenRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  dto.RefreshTokenResponse:
+    properties:
+      access_token:
+        type: string
+      expires_at:
+        type: string
+      refresh_token:
+        type: string
     type: object
   dto.RegisterRequest:
     properties:
@@ -45,6 +98,10 @@ definitions:
     properties:
       access_token:
         type: string
+      expires_at:
+        type: string
+      refresh_token:
+        type: string
       user_id:
         type: integer
     type: object
@@ -57,6 +114,22 @@ definitions:
         type: array
       message:
         type: string
+    type: object
+  dto.UpdateProductRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+      price:
+        type: number
+      stock:
+        type: integer
+    required:
+    - description
+    - name
+    - price
+    - stock
     type: object
   dto.UserDto:
     properties:
@@ -116,6 +189,45 @@ paths:
       summary: User login
       tags:
       - Auth
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Refresh token with refresh token
+      parameters:
+      - description: Refresh token request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.ResponseDto'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.RefreshTokenResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ResponseDto'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ResponseDto'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ResponseDto'
+      summary: Refresh token
+      tags:
+      - Auth
   /auth/register:
     post:
       consumes:
@@ -170,17 +282,208 @@ paths:
       summary: Ping
       tags:
       - App
-  /users/{id}:
+  /products:
     get:
       consumes:
       - application/json
-      description: Find user by ID
+      description: Find all products
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.ResponseDto'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.ProductDto'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ResponseDto'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ResponseDto'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ResponseDto'
+      security:
+      - Bearer: []
+      summary: Find all products
+      tags:
+      - Product
+    post:
+      consumes:
+      - application/json
+      description: Create a new product
       parameters:
-      - description: User ID
+      - description: Create product request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateProductRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.ResponseDto'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ProductDto'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ResponseDto'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ResponseDto'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ResponseDto'
+      security:
+      - Bearer: []
+      summary: Create a new product
+      tags:
+      - Product
+  /products/:id:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a product
+      parameters:
+      - description: Product ID
         in: path
         name: id
         required: true
-        type: integer
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ResponseDto'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ResponseDto'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ResponseDto'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ResponseDto'
+      security:
+      - Bearer: []
+      - Bearer: []
+      summary: Delete a product
+      tags:
+      - Product
+    get:
+      consumes:
+      - application/json
+      description: Find product by ID
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.ResponseDto'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ProductDto'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ResponseDto'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ResponseDto'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ResponseDto'
+      security:
+      - Bearer: []
+      summary: Find product by ID
+      tags:
+      - Product
+    put:
+      consumes:
+      - application/json
+      description: Update a product
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update product request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateProductRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.ResponseDto'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ProductDto'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ResponseDto'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ResponseDto'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ResponseDto'
+      security:
+      - Bearer: []
+      - Bearer: []
+      summary: Update a product
+      tags:
+      - Product
+  /users/self:
+    get:
+      consumes:
+      - application/json
+      description: Find self user
       produces:
       - application/json
       responses:
@@ -197,6 +500,10 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/dto.ResponseDto'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ResponseDto'
         "404":
           description: Not Found
           schema:
@@ -207,7 +514,7 @@ paths:
             $ref: '#/definitions/dto.ResponseDto'
       security:
       - Bearer: []
-      summary: Find user by ID
+      summary: Find self user
       tags:
       - User
   /welcome:

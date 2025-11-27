@@ -3,7 +3,6 @@ package xvalidator
 import (
 	"regexp"
 
-	ut "github.com/go-playground/universal-translator"
 	val "github.com/go-playground/validator/v10"
 )
 
@@ -26,9 +25,9 @@ func (v *DateValidator) Func() val.Func {
 	}
 }
 
-func (v *DateValidator) Translation() (string, val.TranslationFunc) {
-	msg := "Invalid Date Format, Standard Format: YYYY-MM-DD"
-	return msg, func(ut ut.Translator, fe val.FieldError) string {
-		return msg
+func (v *DateValidator) Translations() map[string]string {
+	return map[string]string{
+		"en-US": "Invalid date format, expected format: YYYY-MM-DD",
+		"id":    "Format tanggal tidak valid, format yang diharapkan: YYYY-MM-DD",
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"go-fiber-template/internal/domain/entity"
 	"go-fiber-template/internal/domain/interfaces"
 
+	"github.com/ryanbekhen/di"
 	"gorm.io/gorm"
 )
 
@@ -41,6 +42,12 @@ func (r *repository) Update(user *entity.User) error {
 	return r.db.Save(user).Error
 }
 
-func NewRepository(db *gorm.DB) interfaces.UserRepository {
-	return &repository{db: db}
+func RegisterRepository() {
+	db := di.MustResolve[*gorm.DB]()
+
+	di.RegisterFactory(func() interfaces.UserRepository {
+		return &repository{
+			db: db,
+		}
+	})
 }

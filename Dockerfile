@@ -1,4 +1,4 @@
-ARG GO_VERSION=1.24.2-alpine3.20
+ARG GO_VERSION=1.25-alpine3.20
 ARG ALPINE_VERSION=3.21.3
 
 # Build stage
@@ -17,6 +17,7 @@ WORKDIR /app
 
 COPY --from=builder /app/main .
 COPY --from=builder /app/docs/swagger.json ./docs/swagger.json
+COPY --from=builder /app/localize ./localize
 
 RUN apk --no-cache add curl ca-certificates
 

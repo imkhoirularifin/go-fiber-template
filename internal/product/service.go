@@ -6,13 +6,13 @@ import (
 	"go-fiber-template/internal/domain/interfaces"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/ryanbekhen/di"
 )
 
 type service struct {
 	productRepo interfaces.ProductRepository
 }
 
-// Create implements interfaces.ProductService.
 func (s *service) Create(c *fiber.Ctx, req *dto.CreateProductRequest) (*dto.ProductDto, error) {
 	product := &entity.Product{
 		Name:        req.Name,
@@ -25,10 +25,9 @@ func (s *service) Create(c *fiber.Ctx, req *dto.CreateProductRequest) (*dto.Prod
 		return nil, err
 	}
 
-	return constructProductDto(product), nil
+	return productToDto(product), nil
 }
 
-// Delete implements interfaces.ProductService.
 func (s *service) Delete(c *fiber.Ctx, id uint) error {
 	if err := s.productRepo.Delete(id); err != nil {
 		return err
@@ -37,7 +36,6 @@ func (s *service) Delete(c *fiber.Ctx, id uint) error {
 	return nil
 }
 
-// FindAll implements interfaces.ProductService.
 func (s *service) FindAll(c *fiber.Ctx) ([]dto.ProductDto, error) {
 	products, err := s.productRepo.FindAll()
 	if err != nil {
@@ -46,23 +44,21 @@ func (s *service) FindAll(c *fiber.Ctx) ([]dto.ProductDto, error) {
 
 	var productDtos []dto.ProductDto
 	for _, product := range products {
-		productDtos = append(productDtos, *constructProductDto(&product))
+		productDtos = append(productDtos, *productToDto(&product))
 	}
 
 	return productDtos, nil
 }
 
-// FindByID implements interfaces.ProductService.
 func (s *service) FindByID(c *fiber.Ctx, id uint) (*dto.ProductDto, error) {
 	product, err := s.productRepo.FindByID(id)
 	if err != nil {
 		return nil, err
 	}
 
-	return constructProductDto(product), nil
+	return productToDto(product), nil
 }
 
-// Update implements interfaces.ProductService.
 func (s *service) Update(c *fiber.Ctx, id uint, req *dto.UpdateProductRequest) (*dto.ProductDto, error) {
 	product, err := s.productRepo.FindByID(id)
 	if err != nil {
@@ -78,21 +74,27 @@ func (s *service) Update(c *fiber.Ctx, id uint, req *dto.UpdateProductRequest) (
 		return nil, err
 	}
 
-	return constructProductDto(product), nil
+	return productToDto(product), nil
 }
 
-func constructProductDto(product *entity.Product) *dto.ProductDto {
+func productToDto(data *entity.Product) *dto.ProductDto {
 	return &dto.ProductDto{
-		ID:          product.ID,
-		Name:        product.Name,
-		Description: product.Description,
-		Price:       product.Price,
-		Stock:       product.Stock,
-		CreatedAt:   product.CreatedAt.Format("2006-01-02 15:04:05"),
-		UpdatedAt:   product.UpdatedAt.Format("2006-01-02 15:04:05"),
+		ID:          data.ID,
+		Name:        data.Name,
+		Description: data.Description,
+		Price:       data.Price,
+		Stock:       data.Stock,
+		CreatedAt:   data.CreatedAt,
+		UpdatedAt:   data.UpdatedAt,
 	}
 }
 
-func NewService(productRepo interfaces.ProductRepository) interfaces.ProductService {
-	return &service{productRepo: productRepo}
+func RegisterService() {
+	productRepo := di.MustResolve[interfaces.ProductRepository]()
+
+	di.RegisterFactory(func() interfaces.ProductService {
+		return &service{
+			productRepo: productRepo,
+		}
+	})
 }
