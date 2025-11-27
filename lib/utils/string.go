@@ -9,3 +9,7 @@ func ConvertStringToUint(s string) (uint, error) {
 	}
 	return uint(id), nil
 }
+
+func ConvertUintToString(u uint) string {
+	return strconv.FormatUint(uint64(u), 10)
+}

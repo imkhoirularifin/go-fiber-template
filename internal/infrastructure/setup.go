@@ -3,6 +3,7 @@ package infrastructure
 import (
 	"go-fiber-template/lib/config"
 	"go-fiber-template/pkg/database"
+	"go-fiber-template/pkg/xjwt"
 	"go-fiber-template/pkg/xlogger"
 	"go-fiber-template/pkg/xvalidator"
 )
@@ -39,4 +40,13 @@ func setupDatabase() *database.Database {
 	})
 
 	return dbInstance
+}
+
+func setupJwtClient() xjwt.Client {
+	return xjwt.NewClient(xjwt.Config{
+		SecretKey:             cfg.Jwt.SecretKey,
+		AccessTokenExpiresIn:  cfg.Jwt.AccessTokenExpiresIn,
+		RefreshTokenExpiresIn: cfg.Jwt.RefreshTokenExpiresIn,
+		Issuer:                cfg.Jwt.Issuer,
+	})
 }

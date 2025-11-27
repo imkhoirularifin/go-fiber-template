@@ -13,6 +13,7 @@ var DefaultConfig = Config{
 	SecretKey:             uuid.NewString(),
 	AccessTokenExpiresIn:  3600,   // 1 hour
 	RefreshTokenExpiresIn: 604800, // 7 days
+	Issuer:                "go-fiber-template",
 }
 
 func setConfig(config ...Config) Config {
@@ -30,6 +31,8 @@ func setConfig(config ...Config) Config {
 	if cfg.RefreshTokenExpiresIn == 0 {
 		cfg.RefreshTokenExpiresIn = DefaultConfig.RefreshTokenExpiresIn
 	}
-
+	if cfg.Issuer == "" {
+		cfg.Issuer = DefaultConfig.Issuer
+	}
 	return cfg
 }

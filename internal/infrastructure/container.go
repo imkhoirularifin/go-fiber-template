@@ -3,6 +3,7 @@ package infrastructure
 import (
 	"go-fiber-template/lib/config"
 	"go-fiber-template/pkg/database"
+	"go-fiber-template/pkg/xjwt"
 	"go-fiber-template/pkg/xvalidator"
 
 	"gorm.io/gorm"
@@ -13,6 +14,7 @@ var (
 	dbInstance       *database.Database
 	db               *gorm.DB
 	xvalidatorClient *xvalidator.Client
+	jwtClient        xjwt.Client
 )
 
 func init() {
@@ -22,6 +24,7 @@ func init() {
 	xvalidatorClient = setupXValidator()
 	dbInstance = setupDatabase()
 	db = dbInstance.GetDB()
+	jwtClient = setupJwtClient()
 
 	// register dependencies
 	registerDependencies()
