@@ -37,6 +37,7 @@ type JwtConfig struct {
 	SecretKey             string `env:"SECRET_KEY,notEmpty"`
 	AccessTokenExpiresIn  int64  `env:"ACCESS_TOKEN_EXPIRES_IN" envDefault:"3600"`    // 1 Hour
 	RefreshTokenExpiresIn int64  `env:"REFRESH_TOKEN_EXPIRES_IN" envDefault:"604800"` // 7 Days
+	Issuer                string `env:"ISSUER" envDefault:"go-fiber-template"`
 }
 
 type DatabaseConfig struct {

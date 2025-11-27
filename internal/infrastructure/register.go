@@ -5,6 +5,7 @@ import (
 	"go-fiber-template/internal/user"
 	"go-fiber-template/lib/config"
 	"go-fiber-template/lib/middleware"
+	"go-fiber-template/pkg/xjwt"
 	"go-fiber-template/pkg/xvalidator"
 
 	"github.com/ryanbekhen/di"
@@ -23,6 +24,10 @@ func registerDependencies() {
 	// register xvalidator
 	di.RegisterFactory(func() *xvalidator.Client {
 		return xvalidatorClient
+	})
+	// register jwt client
+	di.RegisterFactory(func() xjwt.Client {
+		return jwtClient
 	})
 }
 
