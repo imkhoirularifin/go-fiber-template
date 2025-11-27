@@ -28,7 +28,7 @@ func (s *service) Login(c *fiber.Ctx, req *dto.LoginRequest) (*dto.LoginResponse
 
 	tokenResponse, err := s.jwtClient.GenerateToken(xjwt.GenerateTokenRequest{
 		User: xjwt.UserInfo{
-			ID:    string(byEmail.ID),
+			ID:    utils.ConvertUintToString(byEmail.ID),
 			Name:  byEmail.Name,
 			Email: byEmail.Email,
 		},
@@ -66,7 +66,7 @@ func (s *service) Register(c *fiber.Ctx, req *dto.RegisterRequest) (*dto.Registe
 
 	tokenResponse, err := s.jwtClient.GenerateToken(xjwt.GenerateTokenRequest{
 		User: xjwt.UserInfo{
-			ID:    string(user.ID),
+			ID:    utils.ConvertUintToString(user.ID),
 			Name:  user.Name,
 			Email: user.Email,
 		},
