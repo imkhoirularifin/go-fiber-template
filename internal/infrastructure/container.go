@@ -1,50 +1,37 @@
 package infrastructure
 
 import (
-	"go-fiber-template/internal/auth"
-	"go-fiber-template/internal/domain/interfaces"
-	"go-fiber-template/internal/email"
-	"go-fiber-template/internal/product"
-	"go-fiber-template/internal/user"
 	"go-fiber-template/lib/config"
-	"go-fiber-template/lib/database"
-	"go-fiber-template/lib/xkafka"
-	"go-fiber-template/lib/xlogger"
-	"go-fiber-template/lib/xvalidator"
+	"go-fiber-template/pkg/database"
+	"go-fiber-template/pkg/xvalidator"
 
 	"gorm.io/gorm"
 )
 
 var (
-	cfg         config.AppConfig
-	dbInstance  *database.Database
-	db          *gorm.DB
-	kafkaClient *xkafka.Client
-
-	authService    interfaces.AuthService
-	userService    interfaces.UserService
-	emailService   interfaces.EmailService
-	productService interfaces.ProductService
+	cfg              config.AppConfig
+	dbInstance       *database.Database
+	db               *gorm.DB
+	xvalidatorClient *xvalidator.Client
 )
 
 func init() {
-	cfg = config.Setup()
-	xlogger.Setup(cfg)
-	xvalidator.Setup()
-
-	dbInstance = database.New(database.Config{
-		Driver: cfg.Database.Driver,
-		Dsn:    cfg.Database.DbString,
-	})
+	// setup dependencies
+	cfg = setupConfig()
+	setupXlogger()
+	xvalidatorClient = setupXValidator()
+	dbInstance = setupDatabase()
 	db = dbInstance.GetDB()
 
-	kafkaClient = xkafka.Setup(cfg.Kafka)
+	// register dependencies
+	registerDependencies()
 
-	userRepository := user.NewRepository(db)
-	productRepository := product.NewRepository(db)
+	// register repositories
+	registerRepositories()
 
-	authService = auth.NewService(userRepository, kafkaClient)
-	userService = user.NewService(userRepository)
-	emailService = email.NewService(kafkaClient)
-	productService = product.NewService(productRepository)
+	// register middlewares
+	registerMiddlewares()
+
+	// register services
+	registerServices()
 }

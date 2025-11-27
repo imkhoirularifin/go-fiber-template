@@ -7,19 +7,32 @@ import (
 	"go-fiber-template/lib/utils"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/ryanbekhen/di"
 )
 
 type httpHandler struct {
 	authService interfaces.AuthService
 }
 
-func NewHttpHandler(r fiber.Router, authService interfaces.AuthService) {
+func NewHttpHandler(r fiber.Router) {
+	authService := di.MustResolve[interfaces.AuthService]()
+
 	handler := &httpHandler{
 		authService: authService,
 	}
 
-	r.Post("/register", middleware.Validate[dto.RegisterRequest](), handler.Register)
-	r.Post("/login", middleware.Validate[dto.LoginRequest](), handler.Login)
+	r.Post("/register",
+		middleware.Validate[dto.RegisterRequest](middleware.PlacementBody),
+		handler.Register,
+	)
+	r.Post("/login",
+		middleware.Validate[dto.LoginRequest](middleware.PlacementBody),
+		handler.Login,
+	)
+	r.Post("/refresh",
+		middleware.Validate[dto.RefreshTokenRequest](middleware.PlacementBody),
+		handler.RefreshToken,
+	)
 }
 
 // @Summary		Register a new user
@@ -35,10 +48,12 @@ func NewHttpHandler(r fiber.Router, authService interfaces.AuthService) {
 // @Router			/auth/register [post]
 func (h *httpHandler) Register(c *fiber.Ctx) error {
 	req := utils.ExtractStructFromValidator[dto.RegisterRequest](c)
+
 	data, err := h.authService.Register(c, req)
 	if err != nil {
 		return err
 	}
+
 	return c.Status(fiber.StatusCreated).JSON(dto.ResponseDto{
 		Message: "User registered successfully",
 		Data:    data,
@@ -58,12 +73,39 @@ func (h *httpHandler) Register(c *fiber.Ctx) error {
 // @Router			/auth/login [post]
 func (h *httpHandler) Login(c *fiber.Ctx) error {
 	req := utils.ExtractStructFromValidator[dto.LoginRequest](c)
+
 	data, err := h.authService.Login(c, req)
 	if err != nil {
 		return err
 	}
+
 	return c.Status(fiber.StatusOK).JSON(dto.ResponseDto{
 		Message: "Login successful",
+		Data:    data,
+	})
+}
+
+// @Summary		Refresh token
+// @Description	Refresh token with refresh token
+// @Tags			Auth
+// @Accept			application/json
+// @Produce		application/json
+// @Param			request	body		dto.RefreshTokenRequest	true	"Refresh token request"
+// @Success		200		{object}	dto.ResponseDto{data=dto.RefreshTokenResponse}
+// @Failure		400		{object}	dto.ResponseDto
+// @Failure		401		{object}	dto.ResponseDto
+// @Failure		500		{object}	dto.ResponseDto
+// @Router			/auth/refresh [post]
+func (h *httpHandler) RefreshToken(c *fiber.Ctx) error {
+	req := utils.ExtractStructFromValidator[dto.RefreshTokenRequest](c)
+
+	data, err := h.authService.RefreshToken(c, req)
+	if err != nil {
+		return err
+	}
+
+	return c.Status(fiber.StatusOK).JSON(dto.ResponseDto{
+		Message: "Refresh token successful",
 		Data:    data,
 	})
 }

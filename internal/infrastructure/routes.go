@@ -15,8 +15,8 @@ func registerRoutes(app *fiber.App) {
 	api := app.Group("/api/v1")
 	x_app.NewHttpHandler(api)
 	docs.NewHttpHandler(api.Group("/docs"))
-	auth.NewHttpHandler(api.Group("/auth"), authService)
-	user.NewHttpHandler(api.Group("/users"), userService)
-	product.NewHttpHandler(api.Group("/products"), productService)
+	auth.NewHttpHandler(api.Group("/auth"))
+	user.NewHttpHandler(api.Group("/users"))
+	product.NewHttpHandler(api.Group("/products"))
 	app.Use(common.NotFoundHandler)
 }

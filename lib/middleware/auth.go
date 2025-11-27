@@ -1,50 +1,49 @@
 package middleware
 
 import (
-	"go-fiber-template/internal/domain/dto"
-	"go-fiber-template/lib/config"
-	"go-fiber-template/lib/xjwt"
+	"go-fiber-template/pkg/xjwt"
+	"strings"
 
-	jwtware "github.com/gofiber/contrib/jwt"
 	"github.com/gofiber/fiber/v2"
-	"github.com/golang-jwt/jwt/v5"
+	"github.com/ryanbekhen/di"
 )
 
-// Protected protect routes
-func Protected() fiber.Handler {
-	return jwtware.New(jwtware.Config{
-		SigningKey: jwtware.SigningKey{
-			JWTAlg: jwt.SigningMethodHS256.Name,
-			Key:    []byte(config.Config.Jwt.SecretKey),
-		},
-		ContextKey:     "user",
-		ErrorHandler:   jwtError,
-		SuccessHandler: jwtSuccess,
-	})
+type JWTAuthMiddleware interface {
+	Validate() fiber.Handler
 }
 
-func jwtError(c *fiber.Ctx, err error) error {
-	if err.Error() == "Missing or malformed JWT" {
-		return c.Status(fiber.StatusBadRequest).JSON(dto.ResponseDto{
-			Message: "Missing or malformed JWT",
+type jwtAuthMiddleware struct {
+	jwtClient xjwt.Client
+}
+
+func (j *jwtAuthMiddleware) Validate() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		token := c.Get("Authorization")
+		if token == "" {
+			return fiber.ErrUnauthorized
+		}
+		token = strings.TrimPrefix(token, "Bearer ")
+
+		tokenClaims, err := j.jwtClient.ValidateToken(xjwt.ValidateTokenRequest{
+			Token: token,
 		})
+		if err != nil {
+			return fiber.ErrUnauthorized
+		}
+
+		// set to local ctx
+		c.Locals("tokenClaims", tokenClaims)
+
+		return c.Next()
 	}
-	return c.Status(fiber.StatusUnauthorized).JSON(dto.ResponseDto{
-		Message: "Invalid or expired JWT",
-	})
 }
 
-func jwtSuccess(c *fiber.Ctx) error {
-	// Get the user from the context
-	jwtToken, ok := c.Locals("user").(*jwt.Token)
-	if !ok {
-		return fiber.NewError(fiber.StatusUnauthorized, "Invalid JWT token")
-	}
-	customClaims, err := xjwt.MapClaimsToTokenClaims(jwtToken)
-	if err != nil {
-		return err
-	}
-	// Set the user in the context
-	c.Locals("claims", customClaims)
-	return c.Next()
+func RegisterJWTAuth() {
+	jwtClient := di.MustResolve[xjwt.Client]()
+
+	di.RegisterFactory(func() JWTAuthMiddleware {
+		return &jwtAuthMiddleware{
+			jwtClient: jwtClient,
+		}
+	})
 }

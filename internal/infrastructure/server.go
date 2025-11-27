@@ -9,7 +9,6 @@ import (
 	"syscall"
 	"time"
 
-	apitally "github.com/apitally/apitally-go/fiber"
 	"github.com/gofiber/contrib/fiberi18n/v2"
 	"github.com/gofiber/contrib/fiberzerolog"
 	"github.com/gofiber/fiber/v2"
@@ -28,24 +27,16 @@ func Run() {
 
 	// Middleware
 	server.Use(fiberi18n.New(config.I18nConfig))
-	server.Use(apitally.Middleware(server, config.ApitallyCfg(cfg)))
 	server.Use(fiberzerolog.New(config.FiberZerologCfg(cfg)))
 	server.Use(recover.New())
-	server.Use(cors.New(config.CorsCfg))
+	server.Use(cors.New(config.CorsCfg(cfg)))
 	server.Use(cache.New(config.CacheCfg))
 
 	// Routes
 	registerRoutes(server)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	_, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
-	go func() {
-		emailTopics := []string{"auth.login"}
-		if err := emailService.StartEmailConsumer(ctx, emailTopics); err != nil {
-			log.Error().Err(err).Msg("Failed to start email consumer")
-		}
-	}()
 
 	go func() {
 		log.Info().Msgf("Server is running on port %s", cfg.Port)
@@ -79,8 +70,5 @@ func shutdown(cancel context.CancelFunc) {
 func cleanupResources() {
 	if err := dbInstance.Close(); err != nil {
 		log.Error().Err(err).Msg("Failed to close database connection")
-	}
-	if err := kafkaClient.Close(); err != nil {
-		log.Error().Err(err).Msg("Failed to close kafka client")
 	}
 }

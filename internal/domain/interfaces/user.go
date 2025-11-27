@@ -16,5 +16,5 @@ type UserRepository interface {
 }
 
 type UserService interface {
-	FindByID(c *fiber.Ctx, id uint) (*dto.UserDto, error)
+	FindSelf(c *fiber.Ctx) (*dto.UserDto, error)
 }
